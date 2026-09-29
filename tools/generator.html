@@ -57,6 +57,7 @@ td input.changed{border-color:var(--c)}
   <h1 style="display:flex;align-items:center;gap:10px"><img src="../assets/frog-teal.webp" alt="" width="48">Voice generator</h1>
   <p class="lead">Creates an AI voice file for every phonogram sound, then packs them into a zip for the audio folder of your GitHub repository. Your API key stays in this browser. Finished files are kept in this browser too, so you can close the tab and continue later.</p>
 
+  <p class="err" id="dataNote" hidden>This page could not find data.js, so it is using its built-in phonogram list. That works fine, but edits you make to data.js will not show here. To use your own list, open this page from the tools folder of your site.</p>
   <section class="panel">
     <h2>1. Choose the voice engine</h2>
     <div class="engines">
@@ -99,6 +100,7 @@ td input.changed{border-color:var(--c)}
           <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts (faster, cheaper)</option>
           <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview (older)</option>
           <option value="gemini-2.5-pro-preview-tts">gemini-2.5-pro-preview-tts (older)</option>
+          <option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts (older)</option>
         </select>
       </div>
       <div>
@@ -145,6 +147,95 @@ td input.changed{border-color:var(--c)}
 </div>
 
 <script src="../data.js"></script>
+<script>
+/* Backup copy of the phonogram list, used only when ../data.js cannot be found
+   (for example, when this file is opened on its own outside the tools folder). */
+if(!window.PHONOGRAMS){
+  window.__psFallback=true;
+/* Phonogram Studio data
+   Each entry: [phonogram, group, [[sound label, keyword, IPA], ...]]
+   Groups: c consonants, v vowels, ct consonant teams, vt vowel teams, r r-controlled, e endings
+   The IPA value is what Google Cloud TTS pronounces for the isolated sound. */
+window.PHONOGRAMS = [
+ ["b","c",[["/b/","bat","b"]]],
+ ["c","c",[["/k/","cat","k"],["/s/","city","s"]]],
+ ["d","c",[["/d/","dog","d"]]],
+ ["f","c",[["/f/","fish","f"]]],
+ ["g","c",[["/g/","goat","ɡ"],["/j/","gem","dʒ"]]],
+ ["h","c",[["/h/","hat","h"]]],
+ ["j","c",[["/j/","jam","dʒ"]]],
+ ["k","c",[["/k/","kite","k"]]],
+ ["l","c",[["/l/","lamp","l"]]],
+ ["m","c",[["/m/","moon","m"]]],
+ ["n","c",[["/n/","nest","n"]]],
+ ["p","c",[["/p/","pig","p"]]],
+ ["qu","c",[["/kw/","queen","kw"]]],
+ ["r","c",[["/r/","rug","ɝ"]]],
+ ["s","c",[["/s/","sun","s"],["/z/","has","z"]]],
+ ["t","c",[["/t/","top","t"]]],
+ ["v","c",[["/v/","van","v"]]],
+ ["w","c",[["/w/","web","w"]]],
+ ["x","c",[["/ks/","fox","ks"]]],
+ ["y","c",[["/y/","yes","j"],["/ĭ/","gym","ɪ"],["/ī/","my","aɪ"],["/ē/","baby","i"]]],
+ ["z","c",[["/z/","zip","z"]]],
+ ["a","v",[["/ă/","apple","æ"],["/ā/","acorn","eɪ"],["/ä/","father","ɑ"]]],
+ ["e","v",[["/ĕ/","egg","ɛ"],["/ē/","me","i"]]],
+ ["i","v",[["/ĭ/","itch","ɪ"],["/ī/","ivy","aɪ"],["/ē/","radio","i"]]],
+ ["o","v",[["/ŏ/","octopus","ɑ"],["/ō/","go","oʊ"],["/o͞o/","do","u"]]],
+ ["u","v",[["/ŭ/","up","ʌ"],["/ū/","unit","ju"],["/o͝o/","put","ʊ"]]],
+ ["sh","ct",[["/sh/","ship","ʃ"]]],
+ ["ch","ct",[["/ch/","chin","tʃ"],["/k/","school","k"],["/sh/","chef","ʃ"]]],
+ ["th","ct",[["/th/","thin","θ"],["/th/","this","ð"]]],
+ ["wh","ct",[["/hw/","whale","hw"]]],
+ ["ck","ct",[["/k/","duck","k"]]],
+ ["ng","ct",[["/ng/","ring","ŋ"]]],
+ ["nk","ct",[["/nk/","pink","ŋk"]]],
+ ["ph","ct",[["/f/","phone","f"]]],
+ ["dge","ct",[["/j/","badge","dʒ"]]],
+ ["tch","ct",[["/ch/","catch","tʃ"]]],
+ ["kn","ct",[["/n/","knee","n"]]],
+ ["wr","ct",[["/r/","write","ɝ"]]],
+ ["gn","ct",[["/n/","gnat","n"]]],
+ ["ti","ct",[["/sh/","nation","ʃ"]]],
+ ["ci","ct",[["/sh/","special","ʃ"]]],
+ ["si","ct",[["/sh/","mission","ʃ"],["/zh/","vision","ʒ"]]],
+ ["ai","vt",[["/ā/","rain","eɪ"]]],
+ ["ay","vt",[["/ā/","play","eɪ"]]],
+ ["ee","vt",[["/ē/","tree","i"]]],
+ ["ea","vt",[["/ē/","eat","i"],["/ĕ/","bread","ɛ"],["/ā/","steak","eɪ"]]],
+ ["oa","vt",[["/ō/","boat","oʊ"]]],
+ ["oe","vt",[["/ō/","toe","oʊ"]]],
+ ["oo","vt",[["/o͞o/","moon","u"],["/o͝o/","book","ʊ"],["/ō/","floor","oʊ"]]],
+ ["ou","vt",[["/ow/","out","aʊ"],["/ō/","four","oʊ"],["/o͞o/","soup","u"],["/ŭ/","touch","ʌ"]]],
+ ["ow","vt",[["/ow/","cow","aʊ"],["/ō/","snow","oʊ"]]],
+ ["oi","vt",[["/oi/","coin","ɔɪ"]]],
+ ["oy","vt",[["/oi/","boy","ɔɪ"]]],
+ ["au","vt",[["/aw/","haul","ɔ"]]],
+ ["aw","vt",[["/aw/","saw","ɔ"]]],
+ ["ew","vt",[["/o͞o/","new","u"],["/ū/","few","ju"]]],
+ ["ie","vt",[["/ē/","field","i"],["/ī/","pie","aɪ"]]],
+ ["igh","vt",[["/ī/","night","aɪ"]]],
+ ["ei","vt",[["/ā/","vein","eɪ"],["/ē/","ceiling","i"]]],
+ ["ey","vt",[["/ā/","they","eɪ"],["/ē/","key","i"]]],
+ ["ui","vt",[["/o͞o/","fruit","u"]]],
+ ["eigh","vt",[["/ā/","eight","eɪ"]]],
+ ["ar","r",[["/ar/","car","ɑɹ"]]],
+ ["er","r",[["/er/","her","ɝ"]]],
+ ["ir","r",[["/er/","bird","ɝ"]]],
+ ["ur","r",[["/er/","hurt","ɝ"]]],
+ ["or","r",[["/or/","for","ɔɹ"],["/er/","work","ɝ"]]],
+ ["ear","r",[["/er/","early","ɝ"]]],
+ ["ed","e",[["/ĕd/","wanted","ɪd"],["/d/","played","d"],["/t/","jumped","t"]]]
+];
+
+/* File names for generated audio: audio/<phonogram>-<index>-sound.mp3 and -word.mp3 */
+window.audioName = function(t, i, kind){ return t + "-" + i + "-" + kind + ".mp3"; };
+
+/* Base name without extension; the manifest lists the real file (.mp3 or .wav) */
+window.audioBase = function(t, i, kind){ return t + "-" + i + "-" + kind; };
+
+}
+</script>
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
@@ -443,6 +534,7 @@ $("zip").onclick=function(){
   });
 };
 
+if(window.__psFallback)$("dataNote").hidden=false;
 render();
 dbLoad().then(render);
 })();
