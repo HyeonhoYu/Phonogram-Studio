@@ -83,13 +83,22 @@ td input.changed{border-color:var(--c)}
       <div id="gemVoiceBox" hidden>
         <label for="gvoice">Voice</label>
         <select id="gvoice">
-          <option>Kore</option><option>Aoede</option><option>Leda</option><option>Zephyr</option>
-          <option>Puck</option><option>Charon</option><option>Fenrir</option><option>Orus</option>
+          <option value="Kore">Kore (firm, female)</option><option value="Sulafat">Sulafat (warm)</option>
+          <option value="Vindemiatrix">Vindemiatrix (gentle)</option><option value="Achird">Achird (friendly)</option>
+          <option value="Achernar">Achernar (soft)</option><option value="Leda">Leda (youthful)</option>
+          <option value="Aoede">Aoede (breezy)</option><option value="Iapetus">Iapetus (clear)</option>
+          <option value="Erinome">Erinome (clear)</option><option value="Puck">Puck (upbeat)</option>
+          <option value="Charon">Charon (informative)</option><option value="Orus">Orus (firm, male)</option>
         </select>
       </div>
       <div id="gemModelBox" hidden>
         <label for="gmodel">Model</label>
-        <select id="gmodel"><option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview</option></select>
+        <select id="gmodel">
+          <option value="gemini-3.8-flash-tts">gemini-3.8-flash-tts (best quality)</option>
+          <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts (faster, cheaper)</option>
+          <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview (older)</option>
+          <option value="gemini-2.5-pro-preview-tts">gemini-2.5-pro-preview-tts (older)</option>
+        </select>
       </div>
       <div>
         <label for="rate">Speaking speed <span id="rateVal"></span></label>
@@ -207,29 +216,26 @@ function cloudSound(it){return '<speak><break time="200ms"/><prosody rate="'+pct
 function cloudWord(it){return '<speak><break time="150ms"/><prosody rate="'+pct()+'">'+esc(it.word)+'</prosody></speak>';}
 
 /* ---------- Gemini TTS ---------- */
-var gemBodyStyle=0; // 0: prebuiltVoiceConfig, 1: voiceConfig.voice
-function gemSynth(text){
-  var key=getKey(),model=$("gmodel").value,voice=$("gvoice").value;
-  function body(style){
-    var vc=style===0?{prebuiltVoiceConfig:{voiceName:voice}}:{voice:voice};
-    return JSON.stringify({contents:[{role:"user",parts:[{text:text}]}],generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:vc}}});
-  }
-  function call(style){
-    return fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{
-      method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body(style)
-    }).then(readJson);
-  }
-  return call(gemBodyStyle).catch(function(e){
-    if(e.status===400&&/voice|Unknown name|Invalid JSON/i.test(e.message)){gemBodyStyle=1-gemBodyStyle;return call(gemBodyStyle);}
-    throw e;
-  }).then(function(j){
+/* Newer models (3.8 and later) read "text" word for word and take delivery notes in speech_metadata.style.
+   Older preview models (3.1, 2.5) take the delivery note inside the text itself. */
+function isNewModel(m){return !/(3\.1|2\.5|2\.0).*preview|preview.*(3\.1|2\.5)/i.test(m);}
+function gemSynth(req){
+  var key=getKey(),model=$("gmodel").value,voice=$("gvoice").value,nw=isNewModel(model);
+  var part=nw?{text:req.text}:{text:req.style?(req.style+": "+req.text):req.text};
+  if(nw&&req.style)part.speech_metadata={style:req.style};
+  var body={contents:[{role:"user",parts:[part]}],generationConfig:{responseModalities:["AUDIO"],
+    speechConfig:{voiceConfig:nw?{voice:voice}:{prebuiltVoiceConfig:{voiceName:voice}}}}};
+  return fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{
+    method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify(body)
+  }).then(readJson).then(function(j){
     var parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
     for(var i=0;i<parts.length;i++){
       var d=parts[i].inlineData||parts[i].inline_data;
       if(d&&d.data){
-        var mt=d.mimeType||d.mime_type||"";
-        if(/wav/i.test(mt))return b64ToBlob(d.data,"audio/wav");
-        var m=/rate=(\d+)/.exec(mt);return pcmToWav(b64ToBytes(d.data),m?+m[1]:24000);
+        var mt=d.mimeType||d.mime_type||"",bytes=b64ToBytes(d.data);
+        var riff=bytes[0]===82&&bytes[1]===73&&bytes[2]===70&&bytes[3]===70;
+        if(riff||/wav/i.test(mt))return new Blob([bytes],{type:"audio/wav"});
+        var m=/rate=(\d+)/.exec(mt);return pcmToWav(bytes,m?+m[1]:24000);
       }
     }
     throw new Error("The model returned no audio. Try a different model in the list.");
@@ -237,10 +243,13 @@ function gemSynth(text){
 }
 function speedWord(){var r=+$("rate").value;return r<0.8?"slowly and clearly":r<0.95?"clearly, at a relaxed pace":"clearly";}
 function gemSound(it){
-  return "Say "+speedWord()+", like a reading teacher modeling one phonics sound. Say only the isolated sound "+it.sym+
-    " (IPA "+ipaOf(it)+"), the sound at the start of the word "+it.word+". Do not say the word or the letter name: "+ipaOf(it);
+  if(isNewModel($("gmodel").value)){
+    return {text:"/"+ipaOf(it)+"/",style:"a kind reading teacher modeling one isolated English phonics sound, the "+it.sym+" sound heard in \""+it.word+"\"; say only that sound, "+speedWord()};
+  }
+  return {text:ipaOf(it),style:"Say "+speedWord()+", like a reading teacher modeling one phonics sound. Say only the isolated sound "+it.sym+
+    " (IPA "+ipaOf(it)+"), the sound heard in the word "+it.word+". Do not say the word or the letter name"};
 }
-function gemWord(it){return "Say "+speedWord()+": "+it.word;}
+function gemWord(it){return {text:it.word,style:isNewModel($("gmodel").value)?"a kind reading teacher, "+speedWord():"Say "+speedWord()};}
 
 $("findModels").onclick=function(){
   var key;try{key=getKey();}catch(e){return showErr(e);}
