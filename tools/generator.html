@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phonogram Studio voice generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#E6F2EE;--surface:#fff;--ink:#1E2A44;--muted:#5A6781;--line:#D5E2DD;--ok:#17A673;--bad:#E0344F;--c:#2F6FEB}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+h1{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 20px;max-width:70ch}
+.panel{background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:20px;margin-bottom:18px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;align-items:end}
+label{display:block;font-weight:800;margin-bottom:6px}
+input[type=text],input[type=password],select{width:100%;padding:10px;border:2px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+input[type=range]{width:100%}
+.check{display:flex;gap:8px;align-items:center;font-weight:700;margin-top:10px}
+button{font:inherit;font-weight:800;cursor:pointer;border-radius:999px;padding:10px 18px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+.progress{font-weight:800;color:var(--muted)}
+.bar{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:12px}
+.bar span{display:block;height:100%;width:0;background:var(--ok);transition:width .2s}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:14px;color:var(--muted)}
+td.p{font-family:"Fredoka",sans-serif;font-size:22px}
+td input{width:90px;padding:6px 8px;border:2px solid var(--line);border-radius:10px;font:inherit}
+td input.changed{border-color:var(--c)}
+.sm{padding:5px 12px;font-size:13px}
+.st{font-size:13px;font-weight:800}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.err{color:var(--bad);font-weight:700;margin-top:10px;white-space:pre-wrap}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voice generator</h1>
+  <p class="lead">Creates an AI voice file for every phonogram sound with Google Cloud Text-to-Speech, then packs them into a zip for the audio folder of your GitHub repository. Your API key is used only in this browser tab.</p>
+
+  <section class="panel">
+    <div class="row">
+      <div>
+        <label for="key">Google Cloud API key</label>
+        <input type="password" id="key" autocomplete="off" placeholder="Paste your API key">
+      </div>
+      <div>
+        <label for="voice">Voice</label>
+        <select id="voice">
+          <option value="en-US-Neural2-F">en-US-Neural2-F (female)</option>
+          <option value="en-US-Neural2-C">en-US-Neural2-C (female)</option>
+          <option value="en-US-Neural2-H">en-US-Neural2-H (female)</option>
+          <option value="en-US-Neural2-D">en-US-Neural2-D (male)</option>
+          <option value="en-US-Neural2-J">en-US-Neural2-J (male)</option>
+          <option value="en-US-Wavenet-F">en-US-Wavenet-F (female)</option>
+          <option value="en-US-Wavenet-D">en-US-Wavenet-D (male)</option>
+        </select>
+      </div>
+      <div>
+        <label for="rate">Speaking speed <span id="rateVal"></span></label>
+        <input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="0.85">
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="remember"> Remember the key on this computer</label>
+    <div class="actions">
+      <button id="test">Test voice</button>
+      <button class="primary" id="genAll">Generate all</button>
+      <button id="genMissing">Generate missing only</button>
+      <button class="primary" id="zip" disabled>Download zip</button>
+      <span class="progress" id="prog"></span>
+    </div>
+    <div class="bar"><span id="barFill"></span></div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section class="panel">
+    <p class="lead" style="margin-bottom:12px">Listen to each sound. If one sounds off, edit its IPA and press Redo. Stop consonants such as b, t, and k can come out faint when isolated; try adding a short vowel, for example "bə".</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tile</th><th>Sound</th><th>Keyword</th><th>IPA</th><th>Sound file</th><th>Word file</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="actions"><button id="resetIpa">Reset all IPA edits</button></div>
+  </section>
+</div>
+
+<script src="../data.js"></script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id);};
+var items=[];
+var audio={};  // filename -> Blob
+var overrides={};
+try{overrides=JSON.parse(localStorage.getItem("ps-ipa")||"{}");}catch(e){}
+try{var k=localStorage.getItem("ps-gkey");if(k){$("key").value=k;$("remember").checked=true;}}catch(e){}
+try{var v=localStorage.getItem("ps-gvoice");if(v)$("voice").value=v;var r=localStorage.getItem("ps-grate");if(r)$("rate").value=r;}catch(e){}
+
+function showRate(){$("rateVal").textContent="("+Number($("rate").value).toFixed(2)+"x)";}
+showRate();
+$("rate").oninput=function(){showRate();try{localStorage.setItem("ps-grate",this.value);}catch(e){}};
+$("voice").onchange=function(){try{localStorage.setItem("ps-gvoice",this.value);}catch(e){}};
+$("remember").onchange=saveKey;$("key").onchange=saveKey;
+function saveKey(){try{if($("remember").checked)localStorage.setItem("ps-gkey",$("key").value.trim());else localStorage.removeItem("ps-gkey");}catch(e){}}
+
+window.PHONOGRAMS.forEach(function(p){
+  p[2].forEach(function(s,i){
+    var id=p[0]+"|"+i;
+    items.push({t:p[0],i:i,sym:s[0],word:s[1],ipa0:s[2],id:id});
+  });
+});
+function ipaOf(it){return overrides[it.id]!=null?overrides[it.id]:it.ipa0;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+function ssmlSound(it){
+  return '<speak><break time="200ms"/><prosody rate="'+Math.round($("rate").value*100)+'%"><phoneme alphabet="ipa" ph="'+esc(ipaOf(it))+'">'+esc(it.t)+'</phoneme></prosody><break time="150ms"/></speak>';
+}
+function ssmlWord(it){
+  return '<speak><break time="150ms"/><prosody rate="'+Math.round($("rate").value*100)+'%">'+esc(it.word)+'</prosody></speak>';
+}
+
+function synth(ssml){
+  var key=$("key").value.trim();
+  if(!key)return Promise.reject(new Error("Paste your Google Cloud API key first."));
+  var voice=$("voice").value;
+  return fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(key),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({input:{ssml:ssml},voice:{languageCode:"en-US",name:voice},audioConfig:{audioEncoding:"MP3",sampleRateHertz:24000}})
+  }).then(function(r){return r.json().then(function(j){
+    if(!r.ok)throw new Error((j.error&&j.error.message)||("Request failed with status "+r.status));
+    var bin=atob(j.audioContent),u=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+    return new Blob([u],{type:"audio/mpeg"});
+  });});
+}
+
+var cur=null;
+function play(blob){
+  if(cur){cur.pause();}
+  var url=URL.createObjectURL(blob);cur=new Audio(url);cur.onended=function(){URL.revokeObjectURL(url);};cur.play();
+}
+
+function render(){
+  var tb=$("rows");tb.innerHTML="";
+  items.forEach(function(it){
+    var tr=document.createElement("tr");
+    var sf=audioName(it.t,it.i,"sound"),wf=audioName(it.t,it.i,"word");
+    tr.innerHTML='<td class="p">'+esc(it.t)+'</td><td>'+esc(it.sym)+'</td><td>'+esc(it.word)+'</td>'+
+      '<td><input type="text" aria-label="IPA for '+esc(it.t+" "+it.sym)+'" value="'+esc(ipaOf(it))+'"'+(overrides[it.id]!=null?' class="changed"':'')+'></td>'+
+      '<td>'+cell(sf)+'</td><td>'+cell(wf)+'</td><td><button class="sm redo">Redo</button></td>';
+    var inp=tr.querySelector("input");
+    inp.onchange=function(){
+      var v=inp.value.trim();
+      if(v===it.ipa0||v==="")delete overrides[it.id];else overrides[it.id]=v;
+      try{localStorage.setItem("ps-ipa",JSON.stringify(overrides));}catch(e){}
+      inp.classList.toggle("changed",overrides[it.id]!=null);
+    };
+    tr.querySelector(".redo").onclick=function(){
+      var b=this;b.disabled=true;$("err").textContent="";
+      genOne(it).then(function(){render();play(audio[sf]);}).catch(showErr).then(function(){b.disabled=false;});
+    };
+    tr.querySelectorAll("[data-f]").forEach(function(btn){btn.onclick=function(){play(audio[btn.getAttribute("data-f")]);};});
+    tb.appendChild(tr);
+  });
+  $("zip").disabled=!Object.keys(audio).length;
+}
+function cell(f){
+  return audio[f]?'<button class="sm" data-f="'+esc(f)+'">Play</button> <span class="st ok">Ready</span>':'<span class="st">Not made</span>';
+}
+function showErr(e){$("err").textContent=e.message||String(e);}
+
+function genOne(it){
+  var sf=audioName(it.t,it.i,"sound"),wf=audioName(it.t,it.i,"word");
+  return synth(ssmlSound(it)).then(function(b){audio[sf]=b;return synth(ssmlWord(it));}).then(function(b){audio[wf]=b;});
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+var busy=false;
+function runBatch(list){
+  if(busy)return;busy=true;$("err").textContent="";
+  setButtons(true);
+  var n=0,total=list.length;
+  function next(){
+    if(n>=total){done();return;}
+    var it=list[n];
+    $("prog").textContent="Making "+(n+1)+" of "+total+": "+it.t+" "+it.sym;
+    genOne(it).then(function(){n++;$("barFill").style.width=Math.round(n/total*100)+"%";return sleep(120);})
+      .then(next).catch(function(e){showErr(e);$("prog").textContent="Stopped at "+it.t+" "+it.sym+". Fix the problem and press Generate missing only.";finish();});
+  }
+  function done(){$("prog").textContent="Done. "+Object.keys(audio).length+" files ready.";finish();}
+  function finish(){busy=false;setButtons(false);render();}
+  next();
+}
+function setButtons(d){["genAll","genMissing","test","resetIpa"].forEach(function(id){$(id).disabled=d;});}
+
+$("genAll").onclick=function(){audio={};runBatch(items.slice());};
+$("genMissing").onclick=function(){
+  runBatch(items.filter(function(it){return !audio[audioName(it.t,it.i,"sound")]||!audio[audioName(it.t,it.i,"word")];}));
+};
+$("test").onclick=function(){
+  $("err").textContent="";
+  synth('<speak>The letter a says <phoneme alphabet="ipa" ph="æ">a</phoneme>, as in apple.</speak>').then(play).catch(showErr);
+};
+$("resetIpa").onclick=function(){
+  if(!confirm("Reset every IPA edit to the original value?"))return;
+  overrides={};try{localStorage.removeItem("ps-ipa");}catch(e){}render();
+};
+$("zip").onclick=function(){
+  var z=new JSZip(),folder=z.folder("audio"),names=Object.keys(audio).sort();
+  names.forEach(function(f){folder.file(f,audio[f]);});
+  folder.file("manifest.json",JSON.stringify({voice:$("voice").value,rate:Number($("rate").value),created:new Date().toISOString(),files:names},null,2));
+  z.generateAsync({type:"blob"}).then(function(b){
+    var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="phonogram-audio.zip";
+    document.body.appendChild(a);a.click();a.remove();
+  });
+};
+render();
+})();
+</script>
+</body>
+</html>

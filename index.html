@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phonogram Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6F2EE; --dot:#CFE3DC; --surface:#FFFFFF; --ink:#1E2A44; --muted:#5A6781; --line:#D5E2DD;
+  --c:#2F6FEB; --c-edge:#1D4FB5; --c-ink:#fff;
+  --v:#FFC23C; --v-edge:#D0930E; --v-ink:#3A2A00;
+  --ct:#17A673; --ct-edge:#0D7A52; --ct-ink:#fff;
+  --vt:#8B5CF6; --vt-edge:#6334CC; --vt-ink:#fff;
+  --r:#F2557A; --r-edge:#C23457; --r-ink:#fff;
+  --e:#F08A24; --e-edge:#BC640C; --e-ink:#fff;
+  --focus:#1E2A44;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#142030; --dot:#1E2D42; --surface:#1C2A3D; --ink:#EEF3FA; --muted:#A3B1C6; --line:#2B3C54; --focus:#FFC23C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#142030; --dot:#1E2D42; --surface:#1C2A3D; --ink:#EEF3FA; --muted:#A3B1C6; --line:#2B3C54; --focus:#FFC23C;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; min-height:100%;
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--dot) 1.6px, transparent 1.7px);
+  background-size:22px 22px;
+  color:var(--ink);
+  font-family:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px; line-height:1.5;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:12px}
+
+/* Header */
+.top{
+  max-width:1240px; margin:0 auto; padding:20px 20px 8px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+.brand .mark{display:flex;gap:4px}
+.brand .mark span{
+  width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+  font-family:"Fredoka",sans-serif;font-weight:700;font-size:15px;
+}
+.brand h1{font-family:"Fredoka",sans-serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-.01em}
+.seg{display:flex;background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:4px}
+.seg button{border:0;background:transparent;padding:8px 18px;border-radius:999px;font-weight:800;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.iconbtn{
+  border:2px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:9px 16px;font-weight:800;
+}
+
+/* Filter chips */
+.filters{max-width:1240px;margin:0 auto;padding:6px 20px 14px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:8px;
+  border:2px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:6px 14px 6px 8px;font-weight:700;font-size:14px;
+}
+.chip i{width:18px;height:18px;border-radius:6px;display:block}
+.chip[aria-pressed="false"]{opacity:.5}
+.chip[aria-pressed="false"] i{background:transparent!important;border:2px dashed var(--muted)}
+
+/* Layout */
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 48px;display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
+.stage{
+  position:sticky; top:calc(env(safe-area-inset-top,0px) + 16px);
+  background:var(--surface);border:2px solid var(--line);border-radius:28px;padding:24px;
+}
+
+/* Tiles */
+.tile{
+  --bgc:var(--c);--edge:var(--c-edge);--tink:var(--c-ink);
+  position:relative;border:0;background:var(--bgc);color:var(--tink);
+  border-radius:16px;box-shadow:0 6px 0 var(--edge);
+  font-family:"Fredoka",sans-serif;font-weight:600;
+  display:grid;place-items:center;
+  transition:transform .08s ease, box-shadow .08s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.tile:active,.tile.pressed{transform:translateY(4px);box-shadow:0 2px 0 var(--edge)}
+.tile.cat-v{--bgc:var(--v);--edge:var(--v-edge);--tink:var(--v-ink)}
+.tile.cat-ct{--bgc:var(--ct);--edge:var(--ct-edge);--tink:var(--ct-ink)}
+.tile.cat-vt{--bgc:var(--vt);--edge:var(--vt-edge);--tink:var(--vt-ink)}
+.tile.cat-r{--bgc:var(--r);--edge:var(--r-edge);--tink:var(--r-ink)}
+.tile.cat-e{--bgc:var(--e);--edge:var(--e-edge);--tink:var(--e-ink)}
+.tile .rec-dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.75}
+
+.bigtile{width:100%;aspect-ratio:1.35;font-size:clamp(64px,9vw,112px);border-radius:26px;box-shadow:0 10px 0 var(--edge);margin-bottom:22px}
+.bigtile:active,.bigtile.pressed{transform:translateY(6px);box-shadow:0 4px 0 var(--edge)}
+.stage .catname{font-weight:800;color:var(--muted);font-size:14px;margin:0 0 4px}
+.stage .count{font-family:"Fredoka",sans-serif;font-weight:600;font-size:22px;margin:0 0 14px}
+
+.sounds{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.sound{
+  display:flex;align-items:center;gap:10px;
+  border:2px solid var(--line);border-radius:18px;padding:6px 6px 6px 8px;
+  transition:border-color .15s, background-color .15s;
+}
+.sound.on{border-color:var(--ink);background:color-mix(in srgb, var(--ink) 7%, transparent)}
+.sound .play{
+  flex:1;display:flex;align-items:baseline;gap:12px;border:0;background:transparent;text-align:left;padding:6px;border-radius:12px;
+}
+.sound .sym{font-family:"Fredoka",sans-serif;font-weight:600;font-size:26px;min-width:64px}
+.sound .kw{color:var(--muted);font-weight:600}
+.sound .kw b{color:var(--ink);font-weight:800}
+.sound .tools{display:flex;gap:6px}
+.small{
+  border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800;
+}
+.small.live{background:#E0344F;border-color:#E0344F;color:#fff}
+.stage .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.primary{
+  border:0;background:var(--ink);color:var(--bg);border-radius:999px;padding:12px 22px;font-weight:800;
+}
+.note{font-size:13px;color:var(--muted);margin:14px 0 0}
+
+/* Board */
+.group{margin-bottom:30px}
+.group h2{font-family:"Fredoka",sans-serif;font-weight:600;font-size:21px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+.group h2 small{font-family:"Nunito",sans-serif;font-size:14px;color:var(--muted);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px 12px}
+.grid .tile{aspect-ratio:1;font-size:30px}
+.grid .tile.selected{outline:4px solid var(--ink);outline-offset:3px}
+
+/* Practice */
+.practice{max-width:640px;margin:10px auto 60px;padding:0 20px}
+.pcard{background:var(--surface);border:2px solid var(--line);border-radius:28px;padding:28px;text-align:center}
+.pmeta{display:flex;justify-content:space-between;font-weight:800;color:var(--muted);font-size:14px;margin-bottom:18px}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:22px}
+.bar span{display:block;height:100%;background:var(--ct);width:0;transition:width .3s ease}
+.practice .bigtile{max-width:360px;margin:0 auto 24px}
+.prompt{font-weight:700;color:var(--muted);margin:0 0 16px}
+.practice .sounds{text-align:left;margin-bottom:22px}
+.pbtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.ok{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--ct);color:#fff;box-shadow:0 4px 0 var(--ct-edge)}
+.again{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--r);color:#fff;box-shadow:0 4px 0 var(--r-edge)}
+.done h2{font-family:"Fredoka",sans-serif;font-size:30px;margin:6px 0 8px}
+[hidden]{display:none!important}
+
+/* Settings */
+dialog{border:2px solid var(--line);border-radius:24px;background:var(--surface);color:var(--ink);padding:24px;max-width:440px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(20,32,48,.45)}
+dialog h2{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 16px}
+.field{margin-bottom:18px}
+.field label{display:block;font-weight:800;margin-bottom:6px}
+.field select,.field input[type=range]{width:100%}
+.field select{padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:700}
+.check input{width:20px;height:20px;margin-top:2px}
+.dlgbtns{display:flex;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;
+  max-width:calc(100% - 32px);text-align:center;z-index:50;
+}
+
+@media (max-width: 860px){
+  .wrap{grid-template-columns:1fr;gap:18px}
+  .stage{top:calc(env(safe-area-inset-top,0px) + 8px);padding:14px;border-radius:22px;z-index:5;
+    display:grid;grid-template-columns:96px 1fr;gap:6px 14px;align-items:start}
+  .stage .bigtile{grid-row:span 3;aspect-ratio:1;font-size:40px;border-radius:18px;box-shadow:0 6px 0 var(--edge);margin:0}
+  .stage .catname{margin:0}
+  .stage .count{display:none}
+  .stage .sounds{grid-column:2;display:flex;flex-wrap:wrap;gap:6px}
+  .stage .sound{padding:0 4px;border-radius:12px}
+  .stage .sound .sym{font-size:18px;min-width:0}
+  .stage .sound .kw{font-size:13px}
+  .stage .sound .play{padding:4px;gap:6px}
+  .stage .actions,.stage .note{display:none}
+  .stage.teacher .sounds{display:grid}
+  .stage.teacher .actions{display:flex;grid-column:1 / -1}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(68px,1fr))}
+  .grid .tile{font-size:24px}
+  .brand h1{font-size:22px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <span style="background:var(--c);color:var(--c-ink)">p</span>
+      <span style="background:var(--v);color:var(--v-ink)">h</span>
+      <span style="background:var(--ct);color:var(--ct-ink)">o</span>
+    </div>
+    <h1>Phonogram Studio</h1>
+  </div>
+  <div class="seg" role="group" aria-label="Mode">
+    <button id="modeExplore" aria-pressed="true">Explore</button>
+    <button id="modePractice" aria-pressed="false">Practice</button>
+  </div>
+  <button class="iconbtn" id="openSettings">Settings</button>
+</header>
+
+<nav class="filters" id="filters" aria-label="Phonogram groups"></nav>
+
+<main>
+  <div class="wrap" id="explore">
+    <aside class="stage" id="stage" aria-live="polite"></aside>
+    <div id="board"></div>
+  </div>
+
+  <section class="practice" id="practice" hidden>
+    <div class="pcard" id="pcard"></div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <h2>Settings</h2>
+  <div class="field">
+    <label for="playMode">What to play</label>
+    <select id="playMode">
+      <option value="both">Sound, then keyword</option>
+      <option value="sound">Sound only</option>
+      <option value="word">Keyword only</option>
+    </select>
+    <p class="note" id="aiStatus" style="margin:8px 0 0"></p>
+  </div>
+  <div class="field">
+    <label for="voiceSel">Backup browser voice</label>
+    <select id="voiceSel"></select>
+  </div>
+  <div class="field">
+    <label for="rate">Speaking speed <span id="rateVal"></span></label>
+    <input type="range" id="rate" min="0.6" max="1.2" step="0.05">
+  </div>
+  <div class="field">
+    <label class="check"><input type="checkbox" id="teacher"> <span>Teacher recording mode<br><small style="color:var(--muted);font-weight:600">Record your own pronunciation for each sound. Your recordings play instead of the device voice and stay in this browser.</small></span></label>
+  </div>
+  <p class="note" style="margin-top:0">Playback order: your own recording first, then the AI voice files in the audio folder, then the browser voice as a backup.</p>
+  <div class="dlgbtns">
+    <button class="small" id="clearRecs">Delete all recordings</button>
+    <button class="primary" id="closeSettings">Done</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+var DATA = window.PHONOGRAMS.map(function(d){return {t:d[0],cat:d[1],s:d[2]};});
+
+var CATS = [
+ {id:"c",name:"Consonants"},{id:"v",name:"Vowels"},{id:"ct",name:"Consonant teams"},
+ {id:"vt",name:"Vowel teams"},{id:"r",name:"R-controlled"},{id:"e",name:"Endings"}
+];
+function catName(id){for(var i=0;i<CATS.length;i++)if(CATS[i].id===id)return CATS[i].name;return "";}
+
+var state = {sel:DATA[0], cats:{}, mode:"explore", rate:0.85, voiceURI:"", teacher:false, play:"both"};
+CATS.forEach(function(c){state.cats[c.id]=true;});
+try{
+  var saved = JSON.parse(localStorage.getItem("ps-settings")||"{}");
+  if(saved.rate) state.rate = saved.rate;
+  if(saved.voiceURI) state.voiceURI = saved.voiceURI;
+  if(saved.teacher) state.teacher = true;
+  if(saved.play) state.play = saved.play;
+}catch(e){}
+function saveSettings(){
+  try{localStorage.setItem("ps-settings",JSON.stringify({rate:state.rate,voiceURI:state.voiceURI,teacher:state.teacher,play:state.play}));}catch(e){}
+}
+
+var $ = function(id){return document.getElementById(id);};
+function el(tag,cls,html){var n=document.createElement(tag);if(cls)n.className=cls;if(html!=null)n.innerHTML=html;return n;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+var toastTimer;
+function toast(msg){var t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true;},2800);}
+
+/* Recordings in IndexedDB */
+var recs = new Map();
+var dbp = null;
+function db(){
+  if(dbp) return dbp;
+  dbp = new Promise(function(res,rej){
+    try{
+      var r = indexedDB.open("phonogram-studio",1);
+      r.onupgradeneeded = function(){r.result.createObjectStore("rec");};
+      r.onsuccess = function(){res(r.result);};
+      r.onerror = function(){rej(r.error);};
+    }catch(e){rej(e);}
+  });
+  return dbp;
+}
+function tx(mode,fn){
+  return db().then(function(d){return new Promise(function(res,rej){
+    var t=d.transaction("rec",mode);var st=t.objectStore("rec");var out=fn(st);
+    t.oncomplete=function(){res(out&&out.result);};t.onerror=function(){rej(t.error);};
+  });});
+}
+function loadRecs(){
+  return db().then(function(d){return new Promise(function(res){
+    try{
+      var st=d.transaction("rec","readonly").objectStore("rec");
+      var cur=st.openCursor();
+      cur.onsuccess=function(){var c=cur.result;if(c){recs.set(c.key,c.value);c.continue();}else res();};
+      cur.onerror=function(){res();};
+    }catch(e){res();}
+  });}).catch(function(){});
+}
+function keyOf(p,i){return p.t+"|"+i;}
+function saveRec(k,blob){recs.set(k,blob);return tx("readwrite",function(st){return st.put(blob,k);}).catch(function(){toast("Recording kept for this session only.");});}
+function delRec(k){recs.delete(k);return tx("readwrite",function(st){return st.delete(k);}).catch(function(){});}
+function hasRec(p){for(var i=0;i<p.s.length;i++)if(recs.has(keyOf(p,i)))return true;return false;}
+
+/* Speech */
+var voices=[];
+function pickVoice(){
+  for(var i=0;i<voices.length;i++)if(voices[i].voiceURI===state.voiceURI)return voices[i];
+  for(var j=0;j<voices.length;j++)if(/en-US/i.test(voices[j].lang))return voices[j];
+  return voices[0]||null;
+}
+function loadVoices(){
+  if(!("speechSynthesis" in window))return;
+  voices = speechSynthesis.getVoices().filter(function(v){return /^en/i.test(v.lang);});
+  var sel=$("voiceSel");sel.innerHTML="";
+  var cur=pickVoice();
+  voices.forEach(function(v){
+    var o=el("option");o.value=v.voiceURI;o.textContent=v.name+" ("+v.lang+")";
+    if(cur&&v.voiceURI===cur.voiceURI)o.selected=true;sel.appendChild(o);
+  });
+  if(!voices.length){var o=el("option");o.textContent="Default voice";sel.appendChild(o);}
+}
+if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
+
+function speak(text){
+  return new Promise(function(res){
+    if(!("speechSynthesis" in window)){toast("This browser has no speech voice. Record sounds in Settings.");return res();}
+    var done=false;function fin(){if(!done){done=true;res();}}
+    try{
+      var u=new SpeechSynthesisUtterance(text);
+      u.rate=state.rate;u.lang="en-US";var v=pickVoice();if(v)u.voice=v;
+      u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);
+      setTimeout(fin,6000);
+    }catch(e){fin();}
+  });
+}
+var currentAudio=null;
+function playBlob(blob){
+  return new Promise(function(res){
+    var url=URL.createObjectURL(blob);var a=new Audio(url);currentAudio=a;
+    var done=false;function fin(){if(!done){done=true;URL.revokeObjectURL(url);res();}}
+    a.onended=fin;a.onerror=fin;a.play().catch(fin);setTimeout(fin,8000);
+  });
+}
+function stopAll(){
+  if("speechSynthesis" in window)speechSynthesis.cancel();
+  if(currentAudio){try{currentAudio.pause();}catch(e){}currentAudio=null;}
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+/* AI voice files listed in audio/manifest.json */
+var aiFiles={};
+function loadManifest(){
+  return fetch("audio/manifest.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json();})
+    .then(function(m){(m.files||[]).forEach(function(f){aiFiles[f]=true;});})
+    .catch(function(){}).then(showAiStatus);
+}
+function showAiStatus(){
+  var n=Object.keys(aiFiles).length;
+  $("aiStatus").textContent=n?("AI voice files found: "+n+"."):"No AI voice files yet. Using the browser voice for keywords.";
+}
+function playUrl(url){
+  return new Promise(function(res){
+    var a=new Audio(url);currentAudio=a;var done=false;function fin(){if(!done){done=true;res();}}
+    a.onended=fin;a.onerror=fin;a.play().catch(fin);setTimeout(fin,8000);
+  });
+}
+function playOne(p,i){
+  var k=keyOf(p,i);
+  if(recs.has(k))return playBlob(recs.get(k));
+  var sf=audioName(p.t,i,"sound"),wf=audioName(p.t,i,"word");
+  var hasS=aiFiles[sf],hasW=aiFiles[wf],my=runId;
+  if(state.play==="sound"&&hasS)return playUrl("audio/"+sf);
+  if(state.play==="word")return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);
+  if(hasS){
+    return playUrl("audio/"+sf).then(function(){
+      if(my!==runId)return;
+      return sleep(250).then(function(){return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);});
+    });
+  }
+  return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);
+}
+var runId=0;
+function playAll(p,container){
+  stopAll();var my=++runId;
+  var rows=container?container.querySelectorAll(".sound"):[];
+  var i=0;
+  function step(){
+    if(my!==runId||i>=p.s.length){rows.forEach&&rows.forEach(function(r){r.classList.remove("on");});return Promise.resolve();}
+    rows.forEach&&rows.forEach(function(r,idx){r.classList.toggle("on",idx===i);});
+    var cur=i;i++;
+    return playOne(p,cur).then(function(){return sleep(220);}).then(step);
+  }
+  return step();
+}
+function playSingle(p,i,row){
+  stopAll();var my=++runId;
+  if(row)row.classList.add("on");
+  playOne(p,i).then(function(){if(row&&my===runId)row.classList.remove("on");});
+}
+
+/* Recording */
+var rec=null;
+function startRecording(p,i,btn){
+  if(rec){rec.stop();return;}
+  if(!navigator.mediaDevices||!window.MediaRecorder){toast("Recording is not supported in this browser.");return;}
+  stopAll();
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var chunks=[];var mr=new MediaRecorder(stream);rec=mr;
+    btn.classList.add("live");btn.textContent="Stop";
+    mr.ondataavailable=function(e){if(e.data.size)chunks.push(e.data);};
+    mr.onstop=function(){
+      stream.getTracks().forEach(function(t){t.stop();});rec=null;
+      var blob=new Blob(chunks,{type:mr.mimeType||"audio/webm"});
+      saveRec(keyOf(p,i),blob).then(function(){renderStage();renderBoard();toast("Saved your recording of "+p.s[i][0]);});
+    };
+    mr.start();
+    setTimeout(function(){if(rec===mr&&mr.state==="recording")mr.stop();},5000);
+  }).catch(function(){toast("Microphone access was blocked. Allow the microphone for this page and try again.");});
+}
+
+/* Sound list */
+function soundList(p,withTools){
+  var ul=el("ul","sounds");
+  p.s.forEach(function(s,i){
+    var li=el("li","sound");
+    var b=el("button","play",'<span class="sym">'+esc(s[0])+'</span><span class="kw">as in <b>'+esc(s[1])+'</b></span>');
+    b.setAttribute("aria-label","Play "+s[0]+" as in "+s[1]);
+    b.onclick=function(){playSingle(p,i,li);};
+    li.appendChild(b);
+    if(withTools&&state.teacher){
+      var tools=el("div","tools");
+      var r=el("button","small",recs.has(keyOf(p,i))?"Re-record":"Record");
+      r.onclick=function(){startRecording(p,i,r);};
+      tools.appendChild(r);
+      if(recs.has(keyOf(p,i))){
+        var d=el("button","small","Delete");
+        d.setAttribute("aria-label","Delete recording of "+s[0]);
+        d.onclick=function(){delRec(keyOf(p,i)).then(function(){renderStage();renderBoard();});};
+        tools.appendChild(d);
+      }
+      li.appendChild(tools);
+    }
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+/* Stage */
+function renderStage(){
+  var p=state.sel,st=$("stage");st.innerHTML="";
+  st.classList.toggle("teacher",state.teacher);
+  var big=el("button","tile bigtile cat-"+p.cat,esc(p.t));
+  big.setAttribute("aria-label","Play all sounds of "+p.t);
+  big.onclick=function(){playAll(p,st);};
+  st.appendChild(big);
+  st.appendChild(el("p","catname",esc(catName(p.cat))));
+  st.appendChild(el("p","count",p.s.length===1?"1 sound":p.s.length+" sounds"));
+  st.appendChild(soundList(p,true));
+  var act=el("div","actions");
+  var pa=el("button","primary","Play all sounds");pa.onclick=function(){playAll(p,st);};
+  act.appendChild(pa);st.appendChild(act);
+  st.appendChild(el("p","note",state.teacher?"Tap Record, say the sound, and it stops by itself after 5 seconds.":"Tap the big tile to hear the sounds in order."));
+}
+
+/* Board */
+function renderFilters(){
+  var f=$("filters");f.innerHTML="";
+  CATS.forEach(function(c){
+    var b=el("button","chip",'<i style="background:var(--'+c.id+')"></i>'+esc(c.name));
+    b.setAttribute("aria-pressed",state.cats[c.id]?"true":"false");
+    b.onclick=function(){
+      var on=0;for(var k in state.cats)if(state.cats[k])on++;
+      if(state.cats[c.id]&&on===1){toast("Keep at least one group on.");return;}
+      state.cats[c.id]=!state.cats[c.id];renderFilters();renderBoard();
+      if(state.mode==="practice")newDeck();
+    };
+    f.appendChild(b);
+  });
+}
+function renderBoard(){
+  var b=$("board");b.innerHTML="";
+  CATS.forEach(function(c){
+    if(!state.cats[c.id])return;
+    var items=DATA.filter(function(d){return d.cat===c.id;});
+    var g=el("section","group");
+    g.appendChild(el("h2",null,esc(c.name)+" <small>"+items.length+"</small>"));
+    var grid=el("div","grid");
+    items.forEach(function(p){
+      var t=el("button","tile cat-"+p.cat+(p===state.sel?" selected":""),esc(p.t)+(hasRec(p)?'<span class="rec-dot" title="Has your recording"></span>':""));
+      t.setAttribute("aria-label",p.t+", "+p.s.length+(p.s.length===1?" sound":" sounds"));
+      t.onclick=function(){
+        state.sel=p;renderStage();
+        grid.parentNode.parentNode.querySelectorAll(".tile.selected").forEach(function(x){x.classList.remove("selected");});
+        t.classList.add("selected");
+        playAll(p,$("stage"));
+      };
+      grid.appendChild(t);
+    });
+    g.appendChild(grid);b.appendChild(g);
+  });
+}
+
+/* Practice */
+var deck=[],total=0,mastered=0,revealed=false;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function newDeck(){
+  deck=shuffle(DATA.filter(function(d){return state.cats[d.cat];}));
+  total=deck.length;mastered=0;revealed=false;renderPractice();
+}
+function renderPractice(){
+  var c=$("pcard");c.innerHTML="";c.classList.remove("done");
+  if(!deck.length){
+    c.classList.add("done");
+    c.appendChild(el("h2",null,"Deck complete"));
+    c.appendChild(el("p","prompt","You said all "+total+" phonograms correctly."));
+    var again=el("button","primary","Shuffle and start again");again.onclick=newDeck;
+    c.appendChild(again);return;
+  }
+  var p=deck[0];
+  var meta=el("div","pmeta");
+  meta.appendChild(el("span",null,mastered+" of "+total+" learned"));
+  meta.appendChild(el("span",null,esc(catName(p.cat))));
+  c.appendChild(meta);
+  var bar=el("div","bar",'<span style="width:'+(total?Math.round(mastered/total*100):0)+'%"></span>');
+  c.appendChild(bar);
+  var big=el("button","tile bigtile cat-"+p.cat,esc(p.t));
+  big.setAttribute("aria-label","Phonogram "+p.t);
+  c.appendChild(big);
+  if(!revealed){
+    c.appendChild(el("p","prompt","Say every sound out loud, then check."));
+    var chk=el("button","primary","Check my answer");
+    chk.onclick=function(){revealed=true;renderPractice();playAll(p,$("pcard"));};
+    big.onclick=chk.onclick;
+    var row=el("div","pbtns");row.appendChild(chk);c.appendChild(row);
+  }else{
+    var list=soundList(p,false);c.appendChild(list);
+    big.onclick=function(){playAll(p,$("pcard"));};
+    var row2=el("div","pbtns");
+    var ag=el("button","again","Practice again");
+    ag.onclick=function(){stopAll();deck.push(deck.shift());revealed=false;renderPractice();};
+    var ok=el("button","ok","I knew it");
+    ok.onclick=function(){stopAll();deck.shift();mastered++;revealed=false;renderPractice();};
+    row2.appendChild(ag);row2.appendChild(ok);c.appendChild(row2);
+  }
+}
+
+/* Mode */
+function setMode(m){
+  state.mode=m;stopAll();
+  $("modeExplore").setAttribute("aria-pressed",m==="explore");
+  $("modePractice").setAttribute("aria-pressed",m==="practice");
+  $("explore").hidden=m!=="explore";$("practice").hidden=m!=="practice";
+  if(m==="practice")newDeck();
+}
+$("modeExplore").onclick=function(){setMode("explore");};
+$("modePractice").onclick=function(){setMode("practice");};
+
+/* Settings */
+var dlg=$("settings");
+function showRate(){$("rateVal").textContent="("+Number(state.rate).toFixed(2)+"x)";}
+$("rate").value=state.rate;showRate();
+$("rate").oninput=function(){state.rate=parseFloat(this.value);showRate();saveSettings();};
+$("voiceSel").onchange=function(){state.voiceURI=this.value;saveSettings();speak("Hello");};
+$("playMode").value=state.play;
+$("playMode").onchange=function(){state.play=this.value;saveSettings();};
+$("teacher").checked=state.teacher;
+$("teacher").onchange=function(){state.teacher=this.checked;saveSettings();renderStage();};
+$("openSettings").onclick=function(){if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","");};
+$("closeSettings").onclick=function(){dlg.close?dlg.close():dlg.removeAttribute("open");};
+$("clearRecs").onclick=function(){
+  if(!recs.size){toast("There are no recordings yet.");return;}
+  if(!confirm("Delete all of your recordings?"))return;
+  var keys=Array.from(recs.keys());
+  Promise.all(keys.map(delRec)).then(function(){renderStage();renderBoard();toast("All recordings deleted.");});
+};
+
+/* Keyboard: space plays the selected tile in Explore */
+document.addEventListener("keydown",function(e){
+  if(e.key===" "&&state.mode==="explore"&&document.activeElement===document.body){e.preventDefault();playAll(state.sel,$("stage"));}
+});
+
+renderFilters();renderStage();renderBoard();
+loadRecs().then(function(){renderStage();renderBoard();});
+loadManifest();
+})();
+</script>
+</body>
+</html>
