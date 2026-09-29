@@ -11,6 +11,7 @@
 <meta name="theme-color" content="#5BAA4C">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 <style>
 :root{--bg:#F4F1F3;--surface:#fff;--ink:#5A3B2A;--muted:#8C7568;--line:#EBE2E3;--ok:#5BAA4C;--bad:#C4313D;--c:#3F9B98}
 *{box-sizing:border-box}
@@ -119,12 +120,14 @@ td input.changed{border-color:var(--c)}
       <button class="primary" id="genAll">Generate all</button>
       <button id="genMissing">Generate missing only</button>
       <button id="stop" disabled>Stop</button>
-      <button class="primary" id="zip" disabled>Download zip</button>
+      <button class="primary" id="pack" disabled>Download for GitHub (1 file)</button>
+      <button id="zip" disabled>Download separate files (zip)</button>
       <button id="clearAll">Delete made files</button>
       <span class="progress" id="prog"></span>
     </div>
     <div class="bar"><span id="barFill"></span></div>
     <div class="err" id="err"></div>
+    <p class="hint"><b>Download for GitHub</b> puts every sound into one small file named pack.json. Upload just that one file into the audio folder of your repository.</p>
     <p class="hint">Free keys have per-minute limits. When a limit is reached the generator waits and tries again by itself.</p>
   </section>
 
@@ -353,6 +356,7 @@ function render(){
     tb.appendChild(tr);
   });
   $("zip").disabled=!Object.keys(files).length;
+  $("pack").disabled=!Object.keys(files).length;
   var made=items.filter(function(it){return files[audioBase(it.t,it.i,"sound")]&&files[audioBase(it.t,it.i,"word")];}).length;
   $("barFill").style.width=Math.round(made/items.length*100)+"%";
   if(!busy)$("prog").textContent=made+" of "+items.length+" sounds made.";
@@ -393,6 +397,43 @@ $("test").onclick=function(){
 };
 $("resetIpa").onclick=function(){if(!confirm("Reset every IPA edit to the original value?"))return;overrides={};ls("ps-ipa",null);render();};
 $("clearAll").onclick=function(){if(!confirm("Delete every file you made in this browser?"))return;files={};dbClear().then(render);};
+/* ---------- one-file pack ---------- */
+function wavToMp3(blob){
+  if(!window.lamejs)return Promise.resolve(blob);
+  return blob.arrayBuffer().then(function(buf){
+    var v=new DataView(buf),rate=24000,off=12,dataStart=-1,dataLen=0;
+    while(off+8<=buf.byteLength){
+      var id=String.fromCharCode(v.getUint8(off),v.getUint8(off+1),v.getUint8(off+2),v.getUint8(off+3)),len=v.getUint32(off+4,true);
+      if(id==="fmt ")rate=v.getUint32(off+12,true);
+      if(id==="data"){dataStart=off+8;dataLen=Math.min(len,buf.byteLength-dataStart);break;}
+      off+=8+len+(len%2);
+    }
+    if(dataStart<0)return blob;
+    var pcm=new Int16Array(buf.slice(dataStart,dataStart+dataLen-(dataLen%2)));
+    var enc=new lamejs.Mp3Encoder(1,rate,64),out=[];
+    for(var i=0;i<pcm.length;i+=1152){var c=enc.encodeBuffer(pcm.subarray(i,i+1152));if(c.length)out.push(new Uint8Array(c));}
+    var e=enc.flush();if(e.length)out.push(new Uint8Array(e));
+    return new Blob(out,{type:"audio/mpeg"});
+  }).catch(function(){return blob;});
+}
+function toDataUrl(blob){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsDataURL(blob);});}
+$("pack").onclick=function(){
+  var btn=this,keys=Object.keys(files).sort(),out={},n=0;btn.disabled=true;
+  function next(){
+    if(n>=keys.length){
+      var json=JSON.stringify({version:1,created:new Date().toISOString(),count:keys.length,files:out});
+      var blob=new Blob([json],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="pack.json";document.body.appendChild(a);a.click();a.remove();
+      $("prog").textContent="pack.json is ready ("+(blob.size/1048576).toFixed(1)+" MB, "+keys.length+" sounds).";
+      btn.disabled=false;return;
+    }
+    var b=keys[n],f=files[b];
+    $("prog").textContent="Packing "+(n+1)+" of "+keys.length;
+    var p=/wav/i.test(f.blob.type)||/\.wav$/i.test(f.name)?wavToMp3(f.blob):Promise.resolve(f.blob);
+    p.then(toDataUrl).then(function(u){out[b]=u;n++;next();}).catch(function(e){showErr(e);btn.disabled=false;});
+  }
+  next();
+};
 $("zip").onclick=function(){
   var z=new JSZip(),folder=z.folder("audio"),names=[];
   Object.keys(files).sort().forEach(function(b){folder.file(files[b].name,files[b].blob);names.push(files[b].name);});

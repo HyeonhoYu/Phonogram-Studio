@@ -57,18 +57,18 @@ API 키는 코드나 파일 어디에도 저장되지 않습니다. "Remember th
 
 ## 3단계: GitHub에 올리기
 
-1. GitHub에서 새 저장소를 만듭니다. (예: `phonogram-studio`)
-2. "Add file > Upload files"로 `index.html`, `data.js`, `README.md`, `tools` 폴더를 올립니다.
-3. zip을 풀면 `audio` 폴더가 나옵니다. 그 안의 음성 파일들과 `manifest.json`을 모두 선택해서 저장소의 `audio` 폴더에 올립니다.
-   - 웹 업로드 화면에 `audio` 폴더째 끌어다 놓으면 폴더 구조가 그대로 올라갑니다.
+1. GitHub에서 새 저장소를 만들고, "Add file > Upload files"로 이 폴더의 파일들(`index.html`, `data.js`, 아이콘 파일들, `assets`, `tools`, `audio` 폴더)을 올립니다.
+2. 생성 도구에서 **Download for GitHub (1 file)**을 누르면 `pack.json` 파일 하나가 받아집니다. 모든 소리가 mp3로 압축되어 이 파일 안에 들어 있습니다.
+3. 저장소의 `audio` 폴더로 들어가 "Add file > Upload files"로 `pack.json` 하나만 올립니다.
 4. "Settings > Pages"에서 Branch를 `main`, 폴더를 `/ (root)`로 두고 Save를 누릅니다.
-5. 1~2분 뒤 `https://계정이름.github.io/phonogram-studio/` 로 접속합니다.
+5. 1~2분 뒤 `https://계정이름.github.io/저장소이름/` 으로 접속하고, 앱의 Settings에서 "AI voice files found: 숫자"를 확인합니다.
 
-`manifest.json`이 꼭 함께 올라가야 앱이 AI 음성 파일을 인식합니다. 앱의 Settings를 열면 "AI voice files found: 숫자"로 확인할 수 있습니다.
+소리를 다시 만들면 새 `pack.json`을 같은 자리에 올려 덮어쓰면 됩니다.
+예전 방식(파일 여러 개 + manifest.json)도 계속 동작하지만, `pack.json`이 있으면 앱은 그것을 먼저 사용합니다.
 
 ## 소리를 다시 만들고 싶을 때
 
-generator에서 수정 후 다시 zip을 받아 `audio` 폴더의 파일을 덮어쓰면 됩니다. 브라우저 캐시 때문에 바로 안 바뀌면 새로고침(Ctrl+Shift+R)을 누르세요.
+generator에서 수정 후 다시 `pack.json`을 받아 `audio` 폴더의 파일을 덮어쓰면 됩니다. 브라우저 캐시 때문에 바로 안 바뀌면 새로고침(Ctrl+Shift+R)을 누르세요.
 
 ## 포노그램을 추가하거나 고치고 싶을 때
 

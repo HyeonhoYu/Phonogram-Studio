@@ -405,8 +405,13 @@ function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 /* AI voice files listed in audio/manifest.json */
 var aiFiles={};
 function loadManifest(){
-  return fetch("audio/manifest.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(m){(m.files||[]).forEach(function(f){aiFiles[f.replace(/\.(mp3|wav)$/i,"")]=f;});})
+  /* First choice: one pack file with every sound inside. Second: separate files listed in manifest.json. */
+  return fetch("audio/pack.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json();})
+    .then(function(pk){var f=pk.files||{};Object.keys(f).forEach(function(b){aiFiles[b]=f[b];});})
+    .catch(function(){
+      return fetch("audio/manifest.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json();})
+        .then(function(m){(m.files||[]).forEach(function(f){aiFiles[f.replace(/\.(mp3|wav)$/i,"")]="audio/"+f;});});
+    })
     .catch(function(){}).then(showAiStatus);
 }
 function showAiStatus(){
@@ -424,15 +429,15 @@ function playOne(p,i){
   if(recs.has(k))return playBlob(recs.get(k));
   var sf=aiFiles[audioBase(p.t,i,"sound")],wf=aiFiles[audioBase(p.t,i,"word")];
   var hasS=!!sf,hasW=!!wf,my=runId;
-  if(state.play==="sound"&&hasS)return playUrl("audio/"+sf);
-  if(state.play==="word")return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);
+  if(state.play==="sound"&&hasS)return playUrl(sf);
+  if(state.play==="word")return hasW?playUrl(wf):speak(p.s[i][1]);
   if(hasS){
-    return playUrl("audio/"+sf).then(function(){
+    return playUrl(sf).then(function(){
       if(my!==runId)return;
-      return sleep(250).then(function(){return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);});
+      return sleep(250).then(function(){return hasW?playUrl(wf):speak(p.s[i][1]);});
     });
   }
-  return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);
+  return hasW?playUrl(wf):speak(p.s[i][1]);
 }
 var runId=0;
 function playAll(p,container){
