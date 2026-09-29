@@ -12,12 +12,17 @@
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;line-height:1.5}
 .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
 h1{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 4px}
-.lead{color:var(--muted);margin:0 0 20px;max-width:70ch}
+h2{font-family:"Fredoka",sans-serif;font-weight:600;font-size:20px;margin:0 0 12px}
+.lead{color:var(--muted);margin:0 0 20px;max-width:75ch}
 .panel{background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:20px;margin-bottom:18px}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;align-items:end}
 label{display:block;font-weight:800;margin-bottom:6px}
 input[type=text],input[type=password],select{width:100%;padding:10px;border:2px solid var(--line);border-radius:12px;font:inherit;background:#fff}
 input[type=range]{width:100%}
+.engines{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.engines label{display:flex;gap:8px;align-items:flex-start;border:2px solid var(--line);border-radius:16px;padding:12px 14px;margin:0;cursor:pointer;flex:1;min-width:260px}
+.engines label:has(input:checked){border-color:var(--ink)}
+.engines small{display:block;color:var(--muted);font-weight:600}
 .check{display:flex;gap:8px;align-items:center;font-weight:700;margin-top:10px}
 button{font:inherit;font-weight:800;cursor:pointer;border-radius:999px;padding:10px 18px;border:2px solid var(--line);background:#fff;color:var(--ink)}
 button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -35,23 +40,30 @@ td input{width:90px;padding:6px 8px;border:2px solid var(--line);border-radius:1
 td input.changed{border-color:var(--c)}
 .sm{padding:5px 12px;font-size:13px}
 .st{font-size:13px;font-weight:800}
-.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.st.ok{color:var(--ok)}
 .err{color:var(--bad);font-weight:700;margin-top:10px;white-space:pre-wrap}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
 :focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Voice generator</h1>
-  <p class="lead">Creates an AI voice file for every phonogram sound with Google Cloud Text-to-Speech, then packs them into a zip for the audio folder of your GitHub repository. Your API key is used only in this browser tab.</p>
+  <p class="lead">Creates an AI voice file for every phonogram sound, then packs them into a zip for the audio folder of your GitHub repository. Your API key stays in this browser. Finished files are kept in this browser too, so you can close the tab and continue later.</p>
 
   <section class="panel">
+    <h2>1. Choose the voice engine</h2>
+    <div class="engines">
+      <label><input type="radio" name="engine" value="cloud" checked> <span>Google Cloud Text-to-Speech<small>Needs a standard API key from Google Cloud Console. Uses IPA, so isolated sounds are the most accurate. Saves mp3.</small></span></label>
+      <label><input type="radio" name="engine" value="gemini"> <span>Gemini TTS<small>Works with a Google AI Studio key. Sounds natural, but isolated sounds come from a spoken instruction and need checking. Saves wav.</small></span></label>
+    </div>
+
     <div class="row">
       <div>
-        <label for="key">Google Cloud API key</label>
+        <label for="key" id="keyLabel">API key</label>
         <input type="password" id="key" autocomplete="off" placeholder="Paste your API key">
       </div>
-      <div>
+      <div id="cloudVoiceBox">
         <label for="voice">Voice</label>
         <select id="voice">
           <option value="en-US-Neural2-F">en-US-Neural2-F (female)</option>
@@ -63,25 +75,48 @@ td input.changed{border-color:var(--c)}
           <option value="en-US-Wavenet-D">en-US-Wavenet-D (male)</option>
         </select>
       </div>
+      <div id="gemVoiceBox" hidden>
+        <label for="gvoice">Voice</label>
+        <select id="gvoice">
+          <option>Kore</option><option>Aoede</option><option>Leda</option><option>Zephyr</option>
+          <option>Puck</option><option>Charon</option><option>Fenrir</option><option>Orus</option>
+        </select>
+      </div>
+      <div id="gemModelBox" hidden>
+        <label for="gmodel">Model</label>
+        <select id="gmodel"><option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview</option></select>
+      </div>
       <div>
         <label for="rate">Speaking speed <span id="rateVal"></span></label>
         <input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="0.85">
       </div>
     </div>
     <label class="check"><input type="checkbox" id="remember"> Remember the key on this computer</label>
+    <p class="hint" id="gemHint" hidden>Press Find models once after pasting your key to load the TTS models your key can use.</p>
     <div class="actions">
+      <button id="findModels" hidden>Find models</button>
       <button id="test">Test voice</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>2. Make the files</h2>
+    <div class="actions" style="margin-top:0">
       <button class="primary" id="genAll">Generate all</button>
       <button id="genMissing">Generate missing only</button>
+      <button id="stop" disabled>Stop</button>
       <button class="primary" id="zip" disabled>Download zip</button>
+      <button id="clearAll">Delete made files</button>
       <span class="progress" id="prog"></span>
     </div>
     <div class="bar"><span id="barFill"></span></div>
     <div class="err" id="err"></div>
+    <p class="hint">Free keys have per-minute limits. When a limit is reached the generator waits and tries again by itself.</p>
   </section>
 
   <section class="panel">
-    <p class="lead" style="margin-bottom:12px">Listen to each sound. If one sounds off, edit its IPA and press Redo. Stop consonants such as b, t, and k can come out faint when isolated; try adding a short vowel, for example "bə".</p>
+    <h2>3. Listen and fix</h2>
+    <p class="lead" style="margin-bottom:12px">Play each sound. If one sounds off, edit its IPA and press Redo. Stop consonants such as b, t, and k can come out faint when isolated; try adding a short vowel, for example "bə".</p>
     <div class="tablewrap">
       <table>
         <thead><tr><th>Tile</th><th>Sound</th><th>Keyword</th><th>IPA</th><th>Sound file</th><th>Word file</th><th></th></tr></thead>
@@ -96,132 +131,265 @@ td input.changed{border-color:var(--c)}
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
-var items=[];
-var audio={};  // filename -> Blob
-var overrides={};
-try{overrides=JSON.parse(localStorage.getItem("ps-ipa")||"{}");}catch(e){}
-try{var k=localStorage.getItem("ps-gkey");if(k){$("key").value=k;$("remember").checked=true;}}catch(e){}
-try{var v=localStorage.getItem("ps-gvoice");if(v)$("voice").value=v;var r=localStorage.getItem("ps-grate");if(r)$("rate").value=r;}catch(e){}
-
-function showRate(){$("rateVal").textContent="("+Number($("rate").value).toFixed(2)+"x)";}
-showRate();
-$("rate").oninput=function(){showRate();try{localStorage.setItem("ps-grate",this.value);}catch(e){}};
-$("voice").onchange=function(){try{localStorage.setItem("ps-gvoice",this.value);}catch(e){}};
-$("remember").onchange=saveKey;$("key").onchange=saveKey;
-function saveKey(){try{if($("remember").checked)localStorage.setItem("ps-gkey",$("key").value.trim());else localStorage.removeItem("ps-gkey");}catch(e){}}
-
-window.PHONOGRAMS.forEach(function(p){
-  p[2].forEach(function(s,i){
-    var id=p[0]+"|"+i;
-    items.push({t:p[0],i:i,sym:s[0],word:s[1],ipa0:s[2],id:id});
-  });
-});
-function ipaOf(it){return overrides[it.id]!=null?overrides[it.id]:it.ipa0;}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return null;}}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 
-function ssmlSound(it){
-  return '<speak><break time="200ms"/><prosody rate="'+Math.round($("rate").value*100)+'%"><phoneme alphabet="ipa" ph="'+esc(ipaOf(it))+'">'+esc(it.t)+'</phoneme></prosody><break time="150ms"/></speak>';
+/* ---------- state ---------- */
+var items=[];
+window.PHONOGRAMS.forEach(function(p){p[2].forEach(function(s,i){items.push({t:p[0],i:i,sym:s[0],word:s[1],ipa0:s[2],id:p[0]+"|"+i});});});
+var overrides={};try{overrides=JSON.parse(ls("ps-ipa")||"{}");}catch(e){}
+function ipaOf(it){return overrides[it.id]!=null?overrides[it.id]:it.ipa0;}
+var files={};  // base name -> {name, blob}
+
+function engine(){return document.querySelector('input[name=engine]:checked').value;}
+function keyName(){return engine()==="cloud"?"ps-gkey":"ps-aikey";}
+
+/* ---------- saved files in IndexedDB ---------- */
+var dbp=null;
+function db(){
+  if(!dbp)dbp=new Promise(function(res,rej){var r=indexedDB.open("ps-generator",1);r.onupgradeneeded=function(){r.result.createObjectStore("f");};r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});
+  return dbp;
 }
-function ssmlWord(it){
-  return '<speak><break time="150ms"/><prosody rate="'+Math.round($("rate").value*100)+'%">'+esc(it.word)+'</prosody></speak>';
+function dbPut(k,v){return db().then(function(d){return new Promise(function(res){var t=d.transaction("f","readwrite");t.objectStore("f").put(v,k);t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
+function dbClear(){return db().then(function(d){return new Promise(function(res){var t=d.transaction("f","readwrite");t.objectStore("f").clear();t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
+function dbLoad(){
+  return db().then(function(d){return new Promise(function(res){
+    var c=d.transaction("f").objectStore("f").openCursor();
+    c.onsuccess=function(){var x=c.result;if(x){files[x.key]=x.value;x.continue();}else res();};c.onerror=function(){res();};
+  });}).catch(function(){});
+}
+function setFile(base,name,blob){files[base]={name:name,blob:blob};return dbPut(base,files[base]);}
+
+/* ---------- settings UI ---------- */
+function applyEngine(){
+  var g=engine()==="gemini";
+  $("cloudVoiceBox").hidden=g;$("gemVoiceBox").hidden=!g;$("gemModelBox").hidden=!g;
+  $("findModels").hidden=!g;$("gemHint").hidden=!g;
+  $("keyLabel").textContent=g?"Google AI Studio API key":"Google Cloud API key";
+  var k=ls(keyName());$("key").value=k||"";$("remember").checked=!!k;
+  ls("ps-engine",engine());
+}
+document.querySelectorAll('input[name=engine]').forEach(function(r){r.onchange=applyEngine;});
+var savedEngine=ls("ps-engine");
+if(savedEngine){var el=document.querySelector('input[name=engine][value="'+savedEngine+'"]');if(el)el.checked=true;}
+["voice","gvoice","rate"].forEach(function(id){var v=ls("ps-"+id);if(v)$(id).value=v;$(id).addEventListener("change",function(){ls("ps-"+id,this.value);});});
+var savedModel=ls("ps-gmodel");
+if(savedModel&&savedModel!==$("gmodel").value){var o=document.createElement("option");o.value=o.textContent=savedModel;$("gmodel").appendChild(o);$("gmodel").value=savedModel;}
+$("gmodel").onchange=function(){ls("ps-gmodel",this.value);};
+function showRate(){$("rateVal").textContent="("+Number($("rate").value).toFixed(2)+"x)";}
+showRate();$("rate").addEventListener("input",showRate);
+function saveKey(){if($("remember").checked)ls(keyName(),$("key").value.trim());else ls(keyName(),null);}
+$("remember").onchange=saveKey;$("key").onchange=saveKey;
+applyEngine();
+
+function getKey(){
+  var k=$("key").value.trim();
+  if(!k)throw new Error("Paste your API key first.");
+  return k;
 }
 
-function synth(ssml){
-  var key=$("key").value.trim();
-  if(!key)return Promise.reject(new Error("Paste your Google Cloud API key first."));
-  var voice=$("voice").value;
+/* ---------- Google Cloud TTS ---------- */
+function cloudSynth(ssml){
+  var key=getKey();
   return fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(key),{
     method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({input:{ssml:ssml},voice:{languageCode:"en-US",name:voice},audioConfig:{audioEncoding:"MP3",sampleRateHertz:24000}})
-  }).then(function(r){return r.json().then(function(j){
-    if(!r.ok)throw new Error((j.error&&j.error.message)||("Request failed with status "+r.status));
-    var bin=atob(j.audioContent),u=new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
-    return new Blob([u],{type:"audio/mpeg"});
-  });});
+    body:JSON.stringify({input:{ssml:ssml},voice:{languageCode:"en-US",name:$("voice").value},audioConfig:{audioEncoding:"MP3",sampleRateHertz:24000}})
+  }).then(readJson).then(function(j){return b64ToBlob(j.audioContent,"audio/mpeg");});
+}
+function pct(){return Math.round($("rate").value*100)+"%";}
+function cloudSound(it){return '<speak><break time="200ms"/><prosody rate="'+pct()+'"><phoneme alphabet="ipa" ph="'+esc(ipaOf(it))+'">'+esc(it.t)+'</phoneme></prosody><break time="150ms"/></speak>';}
+function cloudWord(it){return '<speak><break time="150ms"/><prosody rate="'+pct()+'">'+esc(it.word)+'</prosody></speak>';}
+
+/* ---------- Gemini TTS ---------- */
+var gemBodyStyle=0; // 0: prebuiltVoiceConfig, 1: voiceConfig.voice
+function gemSynth(text){
+  var key=getKey(),model=$("gmodel").value,voice=$("gvoice").value;
+  function body(style){
+    var vc=style===0?{prebuiltVoiceConfig:{voiceName:voice}}:{voice:voice};
+    return JSON.stringify({contents:[{role:"user",parts:[{text:text}]}],generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:vc}}});
+  }
+  function call(style){
+    return fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{
+      method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body(style)
+    }).then(readJson);
+  }
+  return call(gemBodyStyle).catch(function(e){
+    if(e.status===400&&/voice|Unknown name|Invalid JSON/i.test(e.message)){gemBodyStyle=1-gemBodyStyle;return call(gemBodyStyle);}
+    throw e;
+  }).then(function(j){
+    var parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
+    for(var i=0;i<parts.length;i++){
+      var d=parts[i].inlineData||parts[i].inline_data;
+      if(d&&d.data){
+        var mt=d.mimeType||d.mime_type||"";
+        if(/wav/i.test(mt))return b64ToBlob(d.data,"audio/wav");
+        var m=/rate=(\d+)/.exec(mt);return pcmToWav(b64ToBytes(d.data),m?+m[1]:24000);
+      }
+    }
+    throw new Error("The model returned no audio. Try a different model in the list.");
+  });
+}
+function speedWord(){var r=+$("rate").value;return r<0.8?"slowly and clearly":r<0.95?"clearly, at a relaxed pace":"clearly";}
+function gemSound(it){
+  return "Say "+speedWord()+", like a reading teacher modeling one phonics sound. Say only the isolated sound "+it.sym+
+    " (IPA "+ipaOf(it)+"), the sound at the start of the word "+it.word+". Do not say the word or the letter name: "+ipaOf(it);
+}
+function gemWord(it){return "Say "+speedWord()+": "+it.word;}
+
+$("findModels").onclick=function(){
+  var key;try{key=getKey();}catch(e){return showErr(e);}
+  $("err").textContent="";
+  fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":key}}).then(readJson).then(function(j){
+    var list=(j.models||[]).map(function(m){return m.name.replace(/^models\//,"");}).filter(function(n){return /tts/i.test(n);});
+    if(!list.length)throw new Error("No TTS models are available for this key.");
+    var sel=$("gmodel"),cur=sel.value;sel.innerHTML="";
+    list.forEach(function(n){var o=document.createElement("option");o.value=o.textContent=n;sel.appendChild(o);});
+    sel.value=list.indexOf(cur)>=0?cur:list[0];ls("ps-gmodel",sel.value);
+    $("prog").textContent="Found "+list.length+" TTS model(s).";
+  }).catch(showErr);
+};
+
+/* ---------- helpers ---------- */
+function readJson(r){
+  return r.text().then(function(t){
+    var j={};try{j=JSON.parse(t);}catch(e){}
+    if(!r.ok){
+      var e=new Error((j.error&&j.error.message)||("Request failed with status "+r.status));
+      e.status=r.status;
+      var det=(j.error&&j.error.details)||[];
+      det.forEach(function(d){if(d.retryDelay)e.retry=parseFloat(d.retryDelay);});
+      throw e;
+    }
+    return j;
+  });
+}
+function b64ToBytes(b){var s=atob(b),u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
+function b64ToBlob(b,type){return new Blob([b64ToBytes(b)],{type:type});}
+function pcmToWav(pcm,rate){
+  var h=new ArrayBuffer(44),v=new DataView(h);
+  function w(o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
+  w(0,"RIFF");v.setUint32(4,36+pcm.length,true);w(8,"WAVE");w(12,"fmt ");
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);
+  v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,pcm.length,true);
+  return new Blob([h,pcm],{type:"audio/wav"});
+}
+var stopFlag=false;
+function withRetry(fn,label){
+  var tries=0;
+  function go(){
+    return Promise.resolve().then(fn).catch(function(e){
+      if(e.status===429&&tries<8&&!stopFlag){
+        tries++;var wait=Math.max(e.retry||0,20+tries*10);
+        $("prog").textContent="Rate limit reached at "+label+". Waiting "+Math.round(wait)+" seconds, then trying again.";
+        return sleep(wait*1000).then(go);
+      }
+      throw e;
+    });
+  }
+  return go();
+}
+
+function genOne(it){
+  var sb=audioBase(it.t,it.i,"sound"),wb=audioBase(it.t,it.i,"word"),label=it.t+" "+it.sym;
+  if(engine()==="cloud"){
+    return withRetry(function(){return cloudSynth(cloudSound(it));},label).then(function(b){return setFile(sb,sb+".mp3",b);})
+      .then(function(){return withRetry(function(){return cloudSynth(cloudWord(it));},label);}).then(function(b){return setFile(wb,wb+".mp3",b);});
+  }
+  return withRetry(function(){return gemSynth(gemSound(it));},label).then(function(b){return setFile(sb,sb+".wav",b);})
+    .then(function(){return withRetry(function(){return gemSynth(gemWord(it));},label);}).then(function(b){return setFile(wb,wb+".wav",b);});
 }
 
 var cur=null;
-function play(blob){
-  if(cur){cur.pause();}
-  var url=URL.createObjectURL(blob);cur=new Audio(url);cur.onended=function(){URL.revokeObjectURL(url);};cur.play();
+function play(blob){if(!blob)return;if(cur)cur.pause();var url=URL.createObjectURL(blob);cur=new Audio(url);cur.onended=function(){URL.revokeObjectURL(url);};cur.play();}
+function showErr(e){$("err").textContent=explain(e);}
+function explain(e){
+  var m=e.message||String(e);
+  if(/API keys are not supported/i.test(m))return m+"\n\nThis key cannot be used with Google Cloud Text-to-Speech. Choose Gemini TTS above to use a Google AI Studio key, or make a standard API key in Google Cloud Console (see README).";
+  if(/has not been used|is disabled|SERVICE_DISABLED/i.test(m))return m+"\n\nTurn on the Cloud Text-to-Speech API for this project in Google Cloud Console, wait a minute, and try again.";
+  if(/billing/i.test(m))return m+"\n\nLink a billing account to this Google Cloud project, then try again.";
+  if(/Failed to fetch/i.test(m))return m+"\n\nThe request was blocked. Open this page from your GitHub Pages address instead of double-clicking the file.";
+  return m;
 }
 
+/* ---------- table ---------- */
+function cell(base){
+  var f=files[base];
+  return f?'<button class="sm" data-b="'+esc(base)+'">Play</button> <span class="st ok">Ready</span>':'<span class="st">Not made</span>';
+}
 function render(){
   var tb=$("rows");tb.innerHTML="";
   items.forEach(function(it){
+    var sb=audioBase(it.t,it.i,"sound"),wb=audioBase(it.t,it.i,"word");
     var tr=document.createElement("tr");
-    var sf=audioName(it.t,it.i,"sound"),wf=audioName(it.t,it.i,"word");
     tr.innerHTML='<td class="p">'+esc(it.t)+'</td><td>'+esc(it.sym)+'</td><td>'+esc(it.word)+'</td>'+
       '<td><input type="text" aria-label="IPA for '+esc(it.t+" "+it.sym)+'" value="'+esc(ipaOf(it))+'"'+(overrides[it.id]!=null?' class="changed"':'')+'></td>'+
-      '<td>'+cell(sf)+'</td><td>'+cell(wf)+'</td><td><button class="sm redo">Redo</button></td>';
+      '<td>'+cell(sb)+'</td><td>'+cell(wb)+'</td><td><button class="sm redo">Redo</button></td>';
     var inp=tr.querySelector("input");
     inp.onchange=function(){
       var v=inp.value.trim();
       if(v===it.ipa0||v==="")delete overrides[it.id];else overrides[it.id]=v;
-      try{localStorage.setItem("ps-ipa",JSON.stringify(overrides));}catch(e){}
-      inp.classList.toggle("changed",overrides[it.id]!=null);
+      ls("ps-ipa",JSON.stringify(overrides));inp.classList.toggle("changed",overrides[it.id]!=null);
     };
     tr.querySelector(".redo").onclick=function(){
-      var b=this;b.disabled=true;$("err").textContent="";
-      genOne(it).then(function(){render();play(audio[sf]);}).catch(showErr).then(function(){b.disabled=false;});
+      var b=this;b.disabled=true;$("err").textContent="";stopFlag=false;
+      genOne(it).then(function(){render();play(files[sb].blob);}).catch(showErr).then(function(){b.disabled=false;});
     };
-    tr.querySelectorAll("[data-f]").forEach(function(btn){btn.onclick=function(){play(audio[btn.getAttribute("data-f")]);};});
+    tr.querySelectorAll("[data-b]").forEach(function(btn){btn.onclick=function(){var f=files[btn.getAttribute("data-b")];play(f&&f.blob);};});
     tb.appendChild(tr);
   });
-  $("zip").disabled=!Object.keys(audio).length;
+  $("zip").disabled=!Object.keys(files).length;
+  var made=items.filter(function(it){return files[audioBase(it.t,it.i,"sound")]&&files[audioBase(it.t,it.i,"word")];}).length;
+  $("barFill").style.width=Math.round(made/items.length*100)+"%";
+  if(!busy)$("prog").textContent=made+" of "+items.length+" sounds made.";
 }
-function cell(f){
-  return audio[f]?'<button class="sm" data-f="'+esc(f)+'">Play</button> <span class="st ok">Ready</span>':'<span class="st">Not made</span>';
-}
-function showErr(e){$("err").textContent=e.message||String(e);}
 
-function genOne(it){
-  var sf=audioName(it.t,it.i,"sound"),wf=audioName(it.t,it.i,"word");
-  return synth(ssmlSound(it)).then(function(b){audio[sf]=b;return synth(ssmlWord(it));}).then(function(b){audio[wf]=b;});
-}
-function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
-
+/* ---------- batch ---------- */
 var busy=false;
 function runBatch(list){
-  if(busy)return;busy=true;$("err").textContent="";
-  setButtons(true);
+  if(busy)return;
+  try{getKey();}catch(e){return showErr(e);}
+  busy=true;stopFlag=false;$("err").textContent="";setButtons(true);
   var n=0,total=list.length;
   function next(){
-    if(n>=total){done();return;}
+    if(stopFlag){$("prog").textContent="Stopped. Press Generate missing only to continue.";return finish();}
+    if(n>=total){$("prog").textContent="Done. All sounds are made.";return finish();}
     var it=list[n];
     $("prog").textContent="Making "+(n+1)+" of "+total+": "+it.t+" "+it.sym;
-    genOne(it).then(function(){n++;$("barFill").style.width=Math.round(n/total*100)+"%";return sleep(120);})
-      .then(next).catch(function(e){showErr(e);$("prog").textContent="Stopped at "+it.t+" "+it.sym+". Fix the problem and press Generate missing only.";finish();});
+    genOne(it).then(function(){n++;render();return sleep(engine()==="gemini"?1500:150);}).then(next)
+      .catch(function(e){showErr(e);$("prog").textContent="Stopped at "+it.t+" "+it.sym+". Fix the problem, then press Generate missing only.";finish();});
   }
-  function done(){$("prog").textContent="Done. "+Object.keys(audio).length+" files ready.";finish();}
   function finish(){busy=false;setButtons(false);render();}
   next();
 }
-function setButtons(d){["genAll","genMissing","test","resetIpa"].forEach(function(id){$(id).disabled=d;});}
+function setButtons(d){["genAll","genMissing","test","resetIpa","clearAll","findModels"].forEach(function(id){$(id).disabled=d;});$("stop").disabled=!d;}
+function missing(){return items.filter(function(it){return !files[audioBase(it.t,it.i,"sound")]||!files[audioBase(it.t,it.i,"word")];});}
 
-$("genAll").onclick=function(){audio={};runBatch(items.slice());};
-$("genMissing").onclick=function(){
-  runBatch(items.filter(function(it){return !audio[audioName(it.t,it.i,"sound")]||!audio[audioName(it.t,it.i,"word")];}));
+$("genAll").onclick=function(){
+  if(Object.keys(files).length&&!confirm("Make every file again? Files you already made will be replaced."))return;
+  runBatch(items.slice());
 };
+$("genMissing").onclick=function(){var m=missing();if(!m.length){$("prog").textContent="Nothing is missing.";return;}runBatch(m);};
+$("stop").onclick=function(){stopFlag=true;$("prog").textContent="Stopping after the current sound.";};
 $("test").onclick=function(){
   $("err").textContent="";
-  synth('<speak>The letter a says <phoneme alphabet="ipa" ph="æ">a</phoneme>, as in apple.</speak>').then(play).catch(showErr);
+  var it={t:"a",sym:"/ă/",word:"apple",id:"a|0",ipa0:"æ"};
+  var p;try{p=engine()==="cloud"?cloudSynth(cloudSound(it)):gemSynth(gemSound(it));}catch(e){return showErr(e);}
+  p.then(function(b){play(b);$("prog").textContent="Test worked. You should hear the short a sound.";}).catch(showErr);
 };
-$("resetIpa").onclick=function(){
-  if(!confirm("Reset every IPA edit to the original value?"))return;
-  overrides={};try{localStorage.removeItem("ps-ipa");}catch(e){}render();
-};
+$("resetIpa").onclick=function(){if(!confirm("Reset every IPA edit to the original value?"))return;overrides={};ls("ps-ipa",null);render();};
+$("clearAll").onclick=function(){if(!confirm("Delete every file you made in this browser?"))return;files={};dbClear().then(render);};
 $("zip").onclick=function(){
-  var z=new JSZip(),folder=z.folder("audio"),names=Object.keys(audio).sort();
-  names.forEach(function(f){folder.file(f,audio[f]);});
-  folder.file("manifest.json",JSON.stringify({voice:$("voice").value,rate:Number($("rate").value),created:new Date().toISOString(),files:names},null,2));
+  var z=new JSZip(),folder=z.folder("audio"),names=[];
+  Object.keys(files).sort().forEach(function(b){folder.file(files[b].name,files[b].blob);names.push(files[b].name);});
+  folder.file("manifest.json",JSON.stringify({engine:engine(),created:new Date().toISOString(),files:names},null,2));
   z.generateAsync({type:"blob"}).then(function(b){
-    var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="phonogram-audio.zip";
-    document.body.appendChild(a);a.click();a.remove();
+    var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="phonogram-audio.zip";document.body.appendChild(a);a.click();a.remove();
   });
 };
+
 render();
+dbLoad().then(render);
 })();
 </script>
 </body>

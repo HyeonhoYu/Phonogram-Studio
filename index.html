@@ -370,7 +370,7 @@ function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 var aiFiles={};
 function loadManifest(){
   return fetch("audio/manifest.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(m){(m.files||[]).forEach(function(f){aiFiles[f]=true;});})
+    .then(function(m){(m.files||[]).forEach(function(f){aiFiles[f.replace(/\.(mp3|wav)$/i,"")]=f;});})
     .catch(function(){}).then(showAiStatus);
 }
 function showAiStatus(){
@@ -386,8 +386,8 @@ function playUrl(url){
 function playOne(p,i){
   var k=keyOf(p,i);
   if(recs.has(k))return playBlob(recs.get(k));
-  var sf=audioName(p.t,i,"sound"),wf=audioName(p.t,i,"word");
-  var hasS=aiFiles[sf],hasW=aiFiles[wf],my=runId;
+  var sf=aiFiles[audioBase(p.t,i,"sound")],wf=aiFiles[audioBase(p.t,i,"word")];
+  var hasS=!!sf,hasW=!!wf,my=runId;
   if(state.play==="sound"&&hasS)return playUrl("audio/"+sf);
   if(state.play==="word")return hasW?playUrl("audio/"+wf):speak(p.s[i][1]);
   if(hasS){

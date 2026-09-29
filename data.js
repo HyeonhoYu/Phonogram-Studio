@@ -76,3 +76,6 @@ window.PHONOGRAMS = [
 
 /* File names for generated audio: audio/<phonogram>-<index>-sound.mp3 and -word.mp3 */
 window.audioName = function(t, i, kind){ return t + "-" + i + "-" + kind + ".mp3"; };
+
+/* Base name without extension; the manifest lists the real file (.mp3 or .wav) */
+window.audioBase = function(t, i, kind){ return t + "-" + i + "-" + kind; };
