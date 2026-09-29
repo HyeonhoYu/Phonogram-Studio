@@ -9,33 +9,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E6F2EE; --dot:#CFE3DC; --surface:#FFFFFF; --ink:#1E2A44; --muted:#5A6781; --line:#D5E2DD;
-  --c:#2F6FEB; --c-edge:#1D4FB5; --c-ink:#fff;
-  --v:#FFC23C; --v-edge:#D0930E; --v-ink:#3A2A00;
-  --ct:#17A673; --ct-edge:#0D7A52; --ct-ink:#fff;
-  --vt:#8B5CF6; --vt-edge:#6334CC; --vt-ink:#fff;
-  --r:#F2557A; --r-edge:#C23457; --r-ink:#fff;
-  --e:#F08A24; --e-edge:#BC640C; --e-ink:#fff;
-  --focus:#1E2A44;
+  --bg:#F4F1F3; --bg2:#EAF2E6; --dot:#E7E0E4; --surface:#FFFFFF; --ink:#5A3B2A; --muted:#8C7568; --line:#EBE2E3;
+  --accent:#C4313D; --accent-edge:#8F1E28; --pad:#6FAE55; --pad-edge:#4C8A3A;
+  --c:#5BAA4C; --c-edge:#3E7F33; --c-ink:#fff;
+  --v:#F2B632; --v-edge:#C48A10; --v-ink:#4A2E12;
+  --ct:#3F9B98; --ct-edge:#2A7270; --ct-ink:#fff;
+  --vt:#C4313D; --vt-edge:#8F1E28; --vt-ink:#fff;
+  --r:#8C5B3D; --r-edge:#63402A; --r-ink:#fff;
+  --e:#E58B8B; --e-edge:#BD6464; --e-ink:#fff;
+  --focus:#C4313D;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#142030; --dot:#1E2D42; --surface:#1C2A3D; --ink:#EEF3FA; --muted:#A3B1C6; --line:#2B3C54; --focus:#FFC23C;
+    --bg:#231D1B; --bg2:#1E261C; --dot:#2E2623; --surface:#322A27; --ink:#F7EDE6; --muted:#C6B3A8; --line:#4A3F3B; --focus:#F2B632;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#142030; --dot:#1E2D42; --surface:#1C2A3D; --ink:#EEF3FA; --muted:#A3B1C6; --line:#2B3C54; --focus:#FFC23C;
+  --bg:#231D1B; --bg2:#1E261C; --dot:#2E2623; --surface:#322A27; --ink:#F7EDE6; --muted:#C6B3A8; --line:#4A3F3B; --focus:#F2B632;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{
   margin:0; min-height:100%;
   background-color:var(--bg);
-  background-image:radial-gradient(var(--dot) 1.6px, transparent 1.7px);
-  background-size:22px 22px;
+  background-image:radial-gradient(var(--dot) 1.6px, transparent 1.7px), linear-gradient(180deg, var(--bg) 0%, var(--bg) 55%, var(--bg2) 100%);
+  background-size:22px 22px, 100% 100%;
+  background-attachment:scroll, fixed;
   color:var(--ink);
   font-family:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:16px; line-height:1.5;
@@ -49,15 +51,16 @@ button{font:inherit;color:inherit;cursor:pointer}
   display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
 .brand{display:flex;align-items:center;gap:12px;margin-right:auto}
-.brand .mark{display:flex;gap:4px}
+.brand .logo{width:52px;height:auto;display:block;filter:drop-shadow(0 4px 4px rgba(90,59,42,.18))}
 .brand .mark span{
   width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
   font-family:"Fredoka",sans-serif;font-weight:700;font-size:15px;
 }
-.brand h1{font-family:"Fredoka",sans-serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-.01em}
+.brand h1{font-family:"Fredoka",sans-serif;font-weight:700;font-size:28px;margin:0;letter-spacing:-.01em;line-height:1.1}
+.brand p{margin:0;font-weight:700;color:var(--muted);font-size:14px}
 .seg{display:flex;background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:4px}
 .seg button{border:0;background:transparent;padding:8px 18px;border-radius:999px;font-weight:800;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button[aria-pressed="true"]{background:var(--c);color:#fff}
 .iconbtn{
   border:2px solid var(--line);background:var(--surface);border-radius:999px;
   padding:9px 16px;font-weight:800;
@@ -78,8 +81,25 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px 48px;display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
 .stage{
   position:sticky; top:calc(env(safe-area-inset-top,0px) + 16px);
-  background:var(--surface);border:2px solid var(--line);border-radius:28px;padding:24px;
+  max-height:calc(100vh - 32px); overflow:auto;
+  background:var(--surface);border:2px solid var(--line);border-radius:28px;padding:22px;
+  box-shadow:0 14px 30px -18px rgba(90,59,42,.35);
 }
+/* Frog baby */
+.buddy{display:flex;align-items:center;gap:6px;margin:-6px 0 14px}
+.bubble{
+  position:relative;background:var(--bg);border:2px solid var(--line);border-radius:18px;
+  padding:10px 14px;font-weight:800;font-size:15px;flex:1;min-height:48px;
+}
+.bubble::after{content:"";position:absolute;right:-12px;bottom:14px;width:18px;height:18px;background:var(--bg);
+  border-right:2px solid var(--line);border-bottom:2px solid var(--line);transform:rotate(-45deg);border-radius:0 0 4px 0}
+.bubble b{font-family:"Fredoka",sans-serif;font-weight:600;font-size:20px;color:var(--vt)}
+.kid{width:190px;flex:none;filter:drop-shadow(0 10px 10px rgba(90,59,42,.22));transform-origin:50% 100%}
+.stage .bigtile{aspect-ratio:2;font-size:clamp(56px,6vw,88px)}
+.hop{animation:hop .45s cubic-bezier(.3,.7,.4,1)}
+@keyframes hop{0%{transform:translateY(0) scale(1,1)}25%{transform:translateY(2px) scale(1.04,.95)}55%{transform:translateY(-16px) scale(.98,1.03)}100%{transform:translateY(0) scale(1,1)}}
+.wiggle{animation:wiggle .5s ease}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
 
 /* Tiles */
 .tile{
@@ -110,7 +130,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   border:2px solid var(--line);border-radius:18px;padding:6px 6px 6px 8px;
   transition:border-color .15s, background-color .15s;
 }
-.sound.on{border-color:var(--ink);background:color-mix(in srgb, var(--ink) 7%, transparent)}
+.sound.on{border-color:var(--c);background:color-mix(in srgb, var(--c) 12%, transparent)}
 .sound .play{
   flex:1;display:flex;align-items:baseline;gap:12px;border:0;background:transparent;text-align:left;padding:6px;border-radius:12px;
 }
@@ -124,8 +144,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .small.live{background:#E0344F;border-color:#E0344F;color:#fff}
 .stage .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .primary{
-  border:0;background:var(--ink);color:var(--bg);border-radius:999px;padding:12px 22px;font-weight:800;
+  border:0;background:var(--accent);color:#fff;border-radius:999px;padding:12px 22px;font-weight:800;
+  box-shadow:0 4px 0 var(--accent-edge);transition:transform .08s, box-shadow .08s;
 }
+.primary:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-edge)}
 .note{font-size:13px;color:var(--muted);margin:14px 0 0}
 
 /* Board */
@@ -135,19 +157,24 @@ button{font:inherit;color:inherit;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px 12px}
 .grid .tile{aspect-ratio:1;font-size:30px}
 .grid .tile.selected{outline:4px solid var(--ink);outline-offset:3px}
+.group h2 i{width:14px;height:14px;border-radius:5px;display:inline-block;align-self:center}
 
 /* Practice */
 .practice{max-width:640px;margin:10px auto 60px;padding:0 20px}
 .pcard{background:var(--surface);border:2px solid var(--line);border-radius:28px;padding:28px;text-align:center}
 .pmeta{display:flex;justify-content:space-between;font-weight:800;color:var(--muted);font-size:14px;margin-bottom:18px}
 .bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:22px}
-.bar span{display:block;height:100%;background:var(--ct);width:0;transition:width .3s ease}
+.bar span{display:block;height:100%;background:var(--pad);width:0;transition:width .3s ease}
 .practice .bigtile{max-width:360px;margin:0 auto 24px}
+.pfrogs{display:flex;align-items:center;gap:12px;margin:-4px 0 18px}
+.pfrogs .bar{flex:1;margin:0}
+.pfrogs img{width:74px;height:auto;filter:drop-shadow(0 6px 6px rgba(90,59,42,.2));transform-origin:50% 100%}
+.done .kid{width:200px;margin:0 auto 8px;display:block}
 .prompt{font-weight:700;color:var(--muted);margin:0 0 16px}
 .practice .sounds{text-align:left;margin-bottom:22px}
 .pbtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.ok{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--ct);color:#fff;box-shadow:0 4px 0 var(--ct-edge)}
-.again{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--r);color:#fff;box-shadow:0 4px 0 var(--r-edge)}
+.ok{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--c);color:#fff;box-shadow:0 4px 0 var(--c-edge)}
+.again{border:0;border-radius:999px;padding:12px 24px;font-weight:800;background:var(--ct);color:#fff;box-shadow:0 4px 0 var(--ct-edge)}
 .done h2{font-family:"Fredoka",sans-serif;font-size:30px;margin:6px 0 8px}
 [hidden]{display:none!important}
 
@@ -180,12 +207,20 @@ dialog h2{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 16px}
   .stage .sound .sym{font-size:18px;min-width:0}
   .stage .sound .kw{font-size:13px}
   .stage .sound .play{padding:4px;gap:6px}
-  .stage .actions,.stage .note{display:none}
+  .stage .actions,.stage .note,.stage .bubble{display:none}
+  .stage{grid-template-columns:96px 1fr 76px!important}
+  .stage .buddy{display:contents}
+  .stage .kid{grid-column:3;grid-row:1 / span 3;width:76px;align-self:center}
+  .brand{width:100%}
+  .seg button{padding:8px 14px}
+  .stage{max-height:none;overflow:visible}
+  .stage .bigtile{aspect-ratio:1}
   .stage.teacher .sounds{display:grid}
   .stage.teacher .actions{display:flex;grid-column:1 / -1}
   .grid{grid-template-columns:repeat(auto-fill,minmax(68px,1fr))}
   .grid .tile{font-size:24px}
   .brand h1{font-size:22px}
+  .brand .logo{width:42px}
 }
 @media (prefers-reduced-motion: reduce){
   *{transition:none!important;animation:none!important}
@@ -196,12 +231,8 @@ dialog h2{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 16px}
 
 <header class="top">
   <div class="brand">
-    <div class="mark" aria-hidden="true">
-      <span style="background:var(--c);color:var(--c-ink)">p</span>
-      <span style="background:var(--v);color:var(--v-ink)">h</span>
-      <span style="background:var(--ct);color:var(--ct-ink)">o</span>
-    </div>
-    <h1>Phonogram Studio</h1>
+    <img class="logo" src="assets/frog-green.webp" alt="" width="52" height="52">
+    <div><h1>Phonogram Studio</h1><p>with Frog baby</p></div>
   </div>
   <div class="seg" role="group" aria-label="Mode">
     <button id="modeExplore" aria-pressed="true">Explore</button>
@@ -407,6 +438,7 @@ function playAll(p,container){
     if(my!==runId||i>=p.s.length){rows.forEach&&rows.forEach(function(r){r.classList.remove("on");});return Promise.resolve();}
     rows.forEach&&rows.forEach(function(r,idx){r.classList.toggle("on",idx===i);});
     var cur=i;i++;
+    if(state.mode==="explore"){react("kid","hop");sayBubble(p,cur);}
     return playOne(p,cur).then(function(){return sleep(220);}).then(step);
   }
   return step();
@@ -414,6 +446,7 @@ function playAll(p,container){
 function playSingle(p,i,row){
   stopAll();var my=++runId;
   if(row)row.classList.add("on");
+  if(state.mode==="explore"){react("kid","hop");sayBubble(p,i);}
   playOne(p,i).then(function(){if(row&&my===runId)row.classList.remove("on");});
 }
 
@@ -464,10 +497,27 @@ function soundList(p,withTools){
   return ul;
 }
 
+/* Frog baby reactions */
+function bubbleIdle(p){return p.s.length===1?"Tap the tile. I will say its sound!":"This one makes "+p.s.length+" sounds. Listen!";}
+function react(id,cls){
+  var k=document.getElementById(id);if(!k)return;
+  k.classList.remove(cls);void k.offsetWidth;k.classList.add(cls);
+}
+function sayBubble(p,i){
+  var b=document.getElementById("bubble");if(!b||state.sel!==p)return;
+  b.innerHTML='<b>'+esc(p.s[i][0])+'</b> as in '+esc(p.s[i][1]);
+}
+
 /* Stage */
 function renderStage(){
   var p=state.sel,st=$("stage");st.innerHTML="";
   st.classList.toggle("teacher",state.teacher);
+  var buddy=el("div","buddy");
+  var bub=el("div","bubble");bub.id="bubble";bub.innerHTML=bubbleIdle(p);
+  buddy.appendChild(bub);
+  var kid=el("img","kid");kid.id="kid";kid.src="assets/frog-baby.webp";kid.alt="Frog baby holding two little frogs";kid.width=190;
+  kid.onclick=function(){playAll(p,st);};
+  buddy.appendChild(kid);st.appendChild(buddy);
   var big=el("button","tile bigtile cat-"+p.cat,esc(p.t));
   big.setAttribute("aria-label","Play all sounds of "+p.t);
   big.onclick=function(){playAll(p,st);};
@@ -502,7 +552,7 @@ function renderBoard(){
     if(!state.cats[c.id])return;
     var items=DATA.filter(function(d){return d.cat===c.id;});
     var g=el("section","group");
-    g.appendChild(el("h2",null,esc(c.name)+" <small>"+items.length+"</small>"));
+    g.appendChild(el("h2",null,'<i style="background:var(--'+c.id+')"></i>'+esc(c.name)+" <small>"+items.length+"</small>"));
     var grid=el("div","grid");
     items.forEach(function(p){
       var t=el("button","tile cat-"+p.cat+(p===state.sel?" selected":""),esc(p.t)+(hasRec(p)?'<span class="rec-dot" title="Has your recording"></span>':""));
@@ -530,6 +580,8 @@ function renderPractice(){
   var c=$("pcard");c.innerHTML="";c.classList.remove("done");
   if(!deck.length){
     c.classList.add("done");
+    var kd=el("img","kid");kd.id="kidDone";kd.src="assets/frog-baby.webp";kd.alt="Frog baby cheering";c.appendChild(kd);
+    setTimeout(function(){react("kidDone","hop");},100);
     c.appendChild(el("h2",null,"Deck complete"));
     c.appendChild(el("p","prompt","You said all "+total+" phonograms correctly."));
     var again=el("button","primary","Shuffle and start again");again.onclick=newDeck;
@@ -540,8 +592,7 @@ function renderPractice(){
   meta.appendChild(el("span",null,mastered+" of "+total+" learned"));
   meta.appendChild(el("span",null,esc(catName(p.cat))));
   c.appendChild(meta);
-  var bar=el("div","bar",'<span style="width:'+(total?Math.round(mastered/total*100):0)+'%"></span>');
-  c.appendChild(bar);
+  c.appendChild(el("div","pfrogs",'<img id="fg" src="assets/frog-green.webp" alt="" width="74"><div class="bar"><span style="width:'+(total?Math.round(mastered/total*100):0)+'%"></span></div><img id="ft" src="assets/frog-teal.webp" alt="" width="74">'));
   var big=el("button","tile bigtile cat-"+p.cat,esc(p.t));
   big.setAttribute("aria-label","Phonogram "+p.t);
   c.appendChild(big);
@@ -556,9 +607,9 @@ function renderPractice(){
     big.onclick=function(){playAll(p,$("pcard"));};
     var row2=el("div","pbtns");
     var ag=el("button","again","Practice again");
-    ag.onclick=function(){stopAll();deck.push(deck.shift());revealed=false;renderPractice();};
+    ag.onclick=function(){stopAll();deck.push(deck.shift());revealed=false;renderPractice();react("ft","wiggle");};
     var ok=el("button","ok","I knew it");
-    ok.onclick=function(){stopAll();deck.shift();mastered++;revealed=false;renderPractice();};
+    ok.onclick=function(){stopAll();deck.shift();mastered++;revealed=false;renderPractice();react("fg","hop");};
     row2.appendChild(ag);row2.appendChild(ok);c.appendChild(row2);
   }
 }
