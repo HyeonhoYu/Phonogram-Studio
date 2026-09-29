@@ -71,6 +71,14 @@ button{font:inherit;color:inherit;cursor:pointer}
   padding:9px 16px;font-weight:800;
 }
 
+.coffee{
+  display:inline-grid;place-items:center;width:44px;height:44px;border-radius:999px;
+  background:var(--v);color:var(--v-ink);box-shadow:0 4px 0 var(--v-edge);text-decoration:none;
+  transition:transform .08s, box-shadow .08s;
+}
+.coffee:hover{transform:translateY(-1px) rotate(-6deg)}
+.coffee:active{transform:translateY(3px);box-shadow:0 1px 0 var(--v-edge)}
+
 /* Filter chips */
 .filters{max-width:1240px;margin:0 auto;padding:6px 20px 14px;display:flex;flex-wrap:wrap;gap:8px}
 .chip{
@@ -216,7 +224,8 @@ dialog h2{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 16px}
   .stage{grid-template-columns:96px 1fr 76px!important}
   .stage .buddy{display:contents}
   .stage .kid{grid-column:3;grid-row:1 / span 3;width:76px;align-self:center}
-  .brand{width:100%}
+  .brand{flex:1 1 calc(100% - 64px);min-width:0}
+  .top .seg,.top #openSettings{order:2}
   .seg button{padding:8px 14px}
   .stage{max-height:none;overflow:visible}
   .stage .bigtile{aspect-ratio:1}
@@ -244,6 +253,13 @@ dialog h2{font-family:"Fredoka",sans-serif;font-weight:600;margin:0 0 16px}
     <button id="modePractice" aria-pressed="false">Practice</button>
   </div>
   <button class="iconbtn" id="openSettings">Settings</button>
+  <a class="coffee" href="https://buymeacoffee.com/henryyu" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)" title="Buy me a coffee">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/>
+      <path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17"/>
+      <path d="M8 3.5c-.6.8-.6 1.7 0 2.5M11.5 3.5c-.6.8-.6 1.7 0 2.5"/>
+    </svg>
+  </a>
 </header>
 
 <nav class="filters" id="filters" aria-label="Phonogram groups"></nav>
